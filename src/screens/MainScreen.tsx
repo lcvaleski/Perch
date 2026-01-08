@@ -32,7 +32,6 @@ export const MainScreen: React.FC = () => {
     monthlyTotal,
     yearlyTotal,
     isLoading,
-    errorMessage,
     currentMode,
     switchMode,
     refresh,
@@ -41,10 +40,9 @@ export const MainScreen: React.FC = () => {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
   const listFadeAnim = useRef(new Animated.Value(1)).current;
+  const listScaleAnim = useRef(new Animated.Value(1)).current;
   const totalScaleAnim = useRef(new Animated.Value(1)).current;
-  const currentModeRef = useRef(currentMode);
 
   const modes = [
     { key: ViewMode.Day, label: 'Day' },
@@ -58,41 +56,60 @@ export const MainScreen: React.FC = () => {
     modes.map((mode) => new Animated.Value(mode.key === currentMode ? 1 : 0))
   ).current;
 
-  // Update ref when mode changes
-  React.useEffect(() => {
-    currentModeRef.current = currentMode;
-  }, [currentMode]);
+  const totalOpacityAnim = useRef(new Animated.Value(1)).current;
 
   // Animate fade when loading changes and sync tab colors
   React.useEffect(() => {
     if (isLoading) {
-      // Smoothly fade out the list when loading starts
-      Animated.timing(listFadeAnim, {
-        toValue: 0.3, // Keep slightly visible instead of fully transparent
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      // Fade out and scale down the list
+      Animated.parallel([
+        Animated.timing(listFadeAnim, {
+          toValue: 0.5, // Keep more visible
+          duration: 50, // Very fast
+          useNativeDriver: true,
+        }),
+        Animated.timing(listScaleAnim, {
+          toValue: 0.99, // Very slightly smaller
+          duration: 50,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      // Fade in when loading completes
-      Animated.timing(listFadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      // Fade in with bounce effect for list
+      Animated.parallel([
+        Animated.timing(listFadeAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(listScaleAnim, {
+            toValue: 1.005, // Very subtle overshoot
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.spring(listScaleAnim, {
+            toValue: 1,
+            tension: 120,
+            friction: 10,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
     }
 
     // Animate total with fade and subtle bounce
     if (isLoading) {
       // Fade out and scale down slightly
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.timing(totalOpacityAnim, {
           toValue: 0.5,
-          duration: 100,
+          duration: 80,
           useNativeDriver: true,
         }),
         Animated.timing(totalScaleAnim, {
           toValue: 0.99,
-          duration: 100,
+          duration: 80,
           useNativeDriver: true,
         }),
       ]).start();
@@ -102,15 +119,15 @@ export const MainScreen: React.FC = () => {
 
       // Fade in with subtle overshoot bounce
       Animated.parallel([
-        Animated.timing(fadeAnim, {
+        Animated.timing(totalOpacityAnim, {
           toValue: 1,
           duration: 100,
           useNativeDriver: true,
         }),
         Animated.sequence([
           Animated.timing(totalScaleAnim, {
-            toValue: 1.015, // Very subtle overshoot
-            duration: 120,
+            toValue: 1.01, // Very subtle overshoot
+            duration: 100,
             useNativeDriver: true,
           }),
           Animated.spring(totalScaleAnim, {
@@ -133,19 +150,30 @@ export const MainScreen: React.FC = () => {
     });
   }, [isLoading, currentMode, transactionStates.length]);
 
+  const currentModeRef = useRef(currentMode);
+  currentModeRef.current = currentMode;
+
+  // Track haptic feedback state
+  const lastHapticPosition = useRef(0);
+  const hapticInterval = screenWidth * 0.02; // Haptic every 2% of screen width for smoother feedback
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         const { dx, dy } = gestureState;
-        // Only activate if horizontal movement is significantly larger than vertical
-        // and the horizontal distance is more than 30 pixels
-        return Math.abs(dx) > Math.abs(dy) * 3 && Math.abs(dx) > 30;
+        // Much more sensitive - activate with smaller movements
+        return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5;
+      },
+      onPanResponderGrant: () => {
+        // Initial haptic when starting swipe
+        Haptics.selectionAsync();
+        lastHapticPosition.current = 0;
       },
       onPanResponderMove: (evt, gestureState) => {
         // Add visual feedback during swipe
         let translation = gestureState.dx;
 
-        // Get current index from ref to avoid stale closure
+        // Get current index
         const currentIdx = modes.findIndex(m => m.key === currentModeRef.current);
 
         // Add resistance at edges
@@ -155,14 +183,34 @@ export const MainScreen: React.FC = () => {
           translation = gestureState.dx * 0.3;
         }
 
+        // Smooth haptic feedback as you swipe
+        const currentPosition = Math.abs(gestureState.dx);
+        const positionDiff = currentPosition - lastHapticPosition.current;
+
+        // Trigger haptic at regular intervals (using selection for immediate feedback)
+        if (positionDiff >= hapticInterval) {
+          // Use selection haptic for immediate, continuous feedback
+          Haptics.selectionAsync();
+          lastHapticPosition.current = currentPosition;
+        }
+
+        // Reset haptic tracking when crossing zero (direction change)
+        if (Math.sign(gestureState.dx) !== Math.sign(gestureState.dx - gestureState.vx)) {
+          lastHapticPosition.current = 0;
+        }
+
         translateX.setValue(translation);
       },
       onPanResponderRelease: (evt, gestureState) => {
-        const swipeThreshold = screenWidth * 0.45; // Increased to 45% of screen width
-        const velocityThreshold = 1.2; // Increased to 1.2 for very fast swipes only
+        const swipeThreshold = screenWidth * 0.1; // Much more sensitive - 10% of screen width
+        const velocityThreshold = 0.2; // Much more sensitive velocity
 
-        // Get current index from ref to avoid stale closure
+        // Reset haptic tracking
+        lastHapticPosition.current = 0;
+
+        // Get current index
         const currentIdx = modes.findIndex(m => m.key === currentModeRef.current);
+
 
         let shouldChangeView = false;
         let newMode = null;
@@ -182,17 +230,17 @@ export const MainScreen: React.FC = () => {
           }
         }
 
-        // Animate back to center
+        // Always animate back to center
         Animated.spring(translateX, {
           toValue: 0,
           useNativeDriver: true,
-          tension: 40,
-          friction: 7,
+          tension: 50,
+          friction: 8,
         }).start();
 
         if (shouldChangeView && newMode) {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          switchMode(newMode);
+          switchMode(newMode, false);
         }
       },
     })
@@ -220,33 +268,15 @@ export const MainScreen: React.FC = () => {
     }
   };
 
-  if (errorMessage) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setSettingsVisible(true)}
-          >
-            <Text style={styles.settingsButtonText}>Open Settings</Text>
-          </TouchableOpacity>
-        </View>
-        <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
-      </SafeAreaView>
-    );
-  }
+  // Don't show error screen - just continue with normal UI
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Settings Icon */}
       <TouchableOpacity
         style={styles.settingsIconContainer}
-        onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setSettingsVisible(true);
         }}
       >
@@ -260,7 +290,7 @@ export const MainScreen: React.FC = () => {
           style={[
             styles.totalAmount,
             {
-              opacity: fadeAnim,
+              opacity: totalOpacityAnim,
               transform: [{ scale: totalScaleAnim }],
             }
           ]}
@@ -278,7 +308,7 @@ export const MainScreen: React.FC = () => {
                 styles.modeButton,
                 currentMode === mode.key && styles.modeButtonActive
               ]}
-              onPress={() => switchMode(mode.key)}
+              onPress={() => switchMode(mode.key, true)}
               activeOpacity={0.7}
             >
               <View style={styles.modeButtonContent}>
@@ -323,19 +353,20 @@ export const MainScreen: React.FC = () => {
                   }),
                 },
               ],
-              opacity: Animated.multiply(
-                translateX.interpolate({
-                  inputRange: [-screenWidth/2, 0, screenWidth/2],
-                  outputRange: [0.8, 1, 0.8],
-                  extrapolate: 'clamp',
-                }),
-                fadeAnim
-              ),
+              opacity: translateX.interpolate({
+                inputRange: [-screenWidth/2, 0, screenWidth/2],
+                outputRange: [0.8, 1, 0.8],
+                extrapolate: 'clamp',
+              }),
             },
           ]}
           {...panResponder.panHandlers}
         >
-          <Animated.View style={{ flex: 1, opacity: listFadeAnim }}>
+          <Animated.View style={{
+            flex: 1,
+            opacity: listFadeAnim,
+            transform: [{ scale: listScaleAnim }]
+          }}>
             {isLoading && transactionStates.length === 0 ? (
               <SkeletonLoader count={10} />
             ) : transactionStates.length === 0 ? (
@@ -375,7 +406,14 @@ export const MainScreen: React.FC = () => {
         />
       </View>
 
-      <SettingsModal visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => {
+          setSettingsVisible(false);
+          // Refresh data when settings modal closes
+          refresh();
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -401,7 +439,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   totalAmount: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: Colors.riverBlue,
     marginBottom: 16,
@@ -429,7 +467,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modeButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.riverTextSecondaryOpacity06,
   },
   modeButtonTextActive: {
@@ -470,7 +508,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: 'rgba(102, 102, 102, 0.4)',
     fontStyle: 'italic',
   },

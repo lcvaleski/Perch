@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Perch",
-    "slug": "Perch",
+    "name": "Perch - All Card Transactions",
+    "slug": "perch-all-card-transactions",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,8 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.perch",
-      "buildNumber": "1"
+      "bundleIdentifier": "com.coventrylabs.perch",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -27,6 +30,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "92be7692-82e9-42a8-bdb3-af5e1a07a37f"
+      }
+    },
+    "owner": "logancv"
   }
 }

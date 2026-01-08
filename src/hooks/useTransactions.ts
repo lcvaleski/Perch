@@ -28,166 +28,169 @@ export function useTransactions() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentMode, setCurrentMode] = useState<ViewMode>(ViewMode.Day);
   const [usePlaid, setUsePlaid] = useState(false);
-  const [api, setApi] = useState<LunchMoneyAPI | PlaidService | null>(null);
-
-  const currentTaskRef = useRef<any>(null);
+  const api = useRef<LunchMoneyAPI | PlaidService>(new LunchMoneyAPI()).current;
   const hasMarkedAsViewed = useRef(false);
+
+  // Cache for transactions by mode
+  const transactionCache = useRef<Map<ViewMode, { transactions: Transaction[], timestamp: number }>>(new Map());
+  const CACHE_DURATION = 30000; // 30 seconds cache
 
   const calculateTotal = (transactions: Transaction[]): number => {
     return transactions.reduce((sum, t) => sum + TransactionUtils.getAmount(t), 0);
   };
 
-  const loadTransactions = async (mode: ViewMode, isInitialLoad = false) => {
-    if (currentTaskRef.current) {
-      currentTaskRef.current = null;
-    }
+  const loadTransactions = async (mode: ViewMode, forceRefresh = false) => {
+    // Check cache first (unless forcing refresh)
+    if (!forceRefresh) {
+      const cached = transactionCache.current.get(mode);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        // Use cached data instantly without loading state
+        setTransactions(cached.transactions);
+        const states = cached.transactions.map(t => new TransactionState(t));
+        setTransactionStates(states);
 
-    if (!api) {
-      setErrorMessage('Service not initialized');
-      return;
-    }
-
-    // Only set loading state if we don't have existing data (prevents flicker on refresh)
-    if (isInitialLoad || transactionStates.length === 0) {
-      setIsLoading(true);
-    }
-    setErrorMessage(null);
-
-    const taskPromise = async () => {
-      try {
-        let fetchedTransactions: Transaction[] = [];
-        let promises: Promise<any>[] = [];
-
+        // Still update totals from cache
+        const total = calculateTotal(cached.transactions);
         switch (mode) {
           case ViewMode.Day:
-            promises = [
-              api.fetchDailyTransactions()
-                .then(t => {
-                  fetchedTransactions = t;
-                  setDailyTotal(calculateTotal(t));
-                })
-                .catch(err => console.error('Error fetching daily:', err)),
-              api.fetchWeeklyTransactions()
-                .then(t => setWeeklyTotal(calculateTotal(t)))
-                .catch(err => console.error('Error fetching weekly total:', err)),
-              api.fetchMonthlyTransactions()
-                .then(t => setMonthlyTotal(calculateTotal(t)))
-                .catch(err => console.error('Error fetching monthly total:', err)),
-              api.fetchYearlyTotal()
-                .then(setYearlyTotal)
-                .catch(err => console.error('Error fetching yearly total:', err))
-            ];
+            setDailyTotal(total);
             break;
-
           case ViewMode.Week:
-            promises = [
-              api.fetchWeeklyTransactions()
-                .then(t => {
-                  fetchedTransactions = t;
-                  setWeeklyTotal(calculateTotal(t));
-                })
-                .catch(err => console.error('Error fetching weekly:', err)),
-              api.fetchMonthlyTransactions()
-                .then(t => setMonthlyTotal(calculateTotal(t)))
-                .catch(err => console.error('Error fetching monthly total:', err)),
-              api.fetchYearlyTotal()
-                .then(setYearlyTotal)
-                .catch(err => console.error('Error fetching yearly total:', err)),
-              api.fetchLastWeekTotal()
-                .then(setLastWeekTotal)
-                .catch(err => console.error('Error fetching last week total:', err))
-            ];
+            setWeeklyTotal(total);
             break;
-
           case ViewMode.Month:
-            promises = [
-              api.fetchMonthlyTransactions()
-                .then(t => {
-                  fetchedTransactions = t;
-                  setMonthlyTotal(calculateTotal(t));
-                })
-                .catch(err => console.error('Error fetching monthly:', err)),
-              api.fetchYearlyTotal()
-                .then(setYearlyTotal)
-                .catch(err => console.error('Error fetching yearly total:', err))
-            ];
+            setMonthlyTotal(total);
             break;
-
           case ViewMode.Year:
-            promises = [
-              api.fetchYearlyTransactions()
-                .then(t => {
-                  fetchedTransactions = t;
-                  setYearlyTotal(calculateTotal(t));
-                })
-                .catch(err => console.error('Error fetching yearly:', err))
-            ];
+            setYearlyTotal(total);
             break;
         }
 
-        await Promise.allSettled(promises);
-
-        setTransactions(fetchedTransactions);
-        const states = fetchedTransactions.map(t => new TransactionState(t));
-        setTransactionStates(states);
-
-        // Check which transactions are new
+        // Check for new transactions
         const newIds = new Set<string>();
-        for (const transaction of fetchedTransactions) {
+        for (const transaction of cached.transactions) {
           const id = transaction.id.toString();
           if (!viewedTransactionsService.isViewed(id)) {
             newIds.add(id);
           }
         }
         setNewTransactionIds(newIds);
-
-        // Only show error if main transaction fetch failed
-        if (fetchedTransactions.length === 0 && !isLoading) {
-          if (usePlaid) {
-            const plaidConnected = await (api as PlaidService).isConnected();
-            if (!plaidConnected) {
-              setErrorMessage('Please connect your bank account in Settings');
-            }
-          } else {
-            const hasApiKey = await Config.hasRequiredKeys();
-            if (!hasApiKey) {
-              setErrorMessage('Please configure your LunchMoney API key in Settings');
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error('Critical error in loadTransactions:', error);
-        if (usePlaid) {
-          setErrorMessage('Please connect your bank account in Settings');
-        } else {
-          setErrorMessage('Please configure your API keys in Settings');
-        }
-      } finally {
-        setIsLoading(false);
+        return; // Exit early with cached data
       }
-    };
+    }
 
-    const taskExecution = taskPromise();
-    currentTaskRef.current = taskExecution;
-    await taskExecution;
+    setIsLoading(true);
+
+    try {
+      let fetchedTransactions: Transaction[] = [];
+      let promises: Promise<any>[] = [];
+
+      switch (mode) {
+        case ViewMode.Day:
+          // Fetch main transactions and wait for them
+          fetchedTransactions = await api.fetchDailyTransactions().catch(err => {
+            console.error('Error fetching daily:', err);
+            return [];
+          });
+          setDailyTotal(calculateTotal(fetchedTransactions));
+
+          // Fire off other totals in background (don't wait)
+          api.fetchWeeklyTransactions()
+            .then(t => setWeeklyTotal(calculateTotal(t)))
+            .catch(err => console.error('Error fetching weekly total:', err));
+          api.fetchMonthlyTransactions()
+            .then(t => setMonthlyTotal(calculateTotal(t)))
+            .catch(err => console.error('Error fetching monthly total:', err));
+          api.fetchYearlyTotal()
+            .then(setYearlyTotal)
+            .catch(err => console.error('Error fetching yearly total:', err));
+          break;
+
+        case ViewMode.Week:
+          // Fetch main transactions and wait for them
+          fetchedTransactions = await api.fetchWeeklyTransactions().catch(err => {
+            console.error('Error fetching weekly:', err);
+            return [];
+          });
+          setWeeklyTotal(calculateTotal(fetchedTransactions));
+
+          // Fire off other totals in background (don't wait)
+          api.fetchMonthlyTransactions()
+            .then(t => setMonthlyTotal(calculateTotal(t)))
+            .catch(err => console.error('Error fetching monthly total:', err));
+          api.fetchYearlyTotal()
+            .then(setYearlyTotal)
+            .catch(err => console.error('Error fetching yearly total:', err));
+          api.fetchLastWeekTotal()
+            .then(setLastWeekTotal)
+            .catch(err => console.error('Error fetching last week total:', err));
+          break;
+
+        case ViewMode.Month:
+          // Fetch main transactions and wait for them
+          fetchedTransactions = await api.fetchMonthlyTransactions().catch(err => {
+            console.error('Error fetching monthly:', err);
+            return [];
+          });
+          setMonthlyTotal(calculateTotal(fetchedTransactions));
+
+          // Fire off other totals in background (don't wait)
+          api.fetchYearlyTotal()
+            .then(setYearlyTotal)
+            .catch(err => console.error('Error fetching yearly total:', err));
+          break;
+
+        case ViewMode.Year:
+          // Fetch main transactions and wait for them
+          fetchedTransactions = await api.fetchYearlyTransactions().catch(err => {
+            console.error('Error fetching yearly:', err);
+            return [];
+          });
+          setYearlyTotal(calculateTotal(fetchedTransactions));
+          break;
+      }
+
+      // Cache the fetched transactions
+      transactionCache.current.set(mode, {
+        transactions: fetchedTransactions,
+        timestamp: Date.now()
+      });
+
+      setTransactions(fetchedTransactions);
+      const states = fetchedTransactions.map(t => new TransactionState(t));
+      setTransactionStates(states);
+
+      // Check which transactions are new
+      const newIds = new Set<string>();
+      for (const transaction of fetchedTransactions) {
+        const id = transaction.id.toString();
+        if (!viewedTransactionsService.isViewed(id)) {
+          newIds.add(id);
+        }
+      }
+      setNewTransactionIds(newIds);
+
+    } catch (error: any) {
+      console.error('Error in loadTransactions:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
 
-  const switchMode = async (mode: ViewMode) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const switchMode = async (mode: ViewMode, withHaptics = true) => {
+
+    if (withHaptics) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     setCurrentMode(mode);
-
-    // Show loading state for a brief moment to indicate data refresh
-    setIsLoading(true);
-
-    // Add a small delay to make the loading state visible
-    await new Promise(resolve => setTimeout(resolve, 150));
 
     await loadTransactions(mode);
   };
 
   const refresh = async () => {
-    await loadTransactions(currentMode);
+    await loadTransactions(currentMode, true); // Force refresh, bypass cache
   };
 
   // Mark transactions as viewed after 3 seconds
@@ -210,25 +213,12 @@ export function useTransactions() {
     hasMarkedAsViewed.current = false;
   }, [currentMode]);
 
-  // Initialize API service based on user preference
+  // Initialize and load on mount
   useEffect(() => {
-    const initializeService = async () => {
-      const storedUsePlaid = await AsyncStorage.getItem('use_plaid');
-      const shouldUsePlaid = storedUsePlaid === 'true';
-      setUsePlaid(shouldUsePlaid);
-      setApi(shouldUsePlaid ? new PlaidService() : new LunchMoneyAPI());
-    };
-    initializeService();
+    viewedTransactionsService.initialize().then(() => {
+      loadTransactions(currentMode);
+    });
   }, []);
-
-  // Initialize viewed service and load transactions when API is ready
-  useEffect(() => {
-    if (api) {
-      viewedTransactionsService.initialize().then(() => {
-        loadTransactions(currentMode, true);
-      });
-    }
-  }, [api]);
 
   return {
     transactions,

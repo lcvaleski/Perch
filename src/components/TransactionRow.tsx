@@ -71,13 +71,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   merchantName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400',
     color: Colors.riverTextOpacity07,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   dateText: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.riverTextSecondaryOpacity06,
   },
   rightColumn: {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   amount: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: Colors.riverText,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.riverBlueLighter,
   },
   paymentMethod: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '500',
     color: Colors.riverTextSecondaryOpacity07,
   },

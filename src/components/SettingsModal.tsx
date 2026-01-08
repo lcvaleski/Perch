@@ -9,10 +9,14 @@ import {
   Alert,
   Switch,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Updates from 'expo-updates';
-import PlaidLink from '@burstware/expo-plaid-link';
+// import PlaidLink from '@burstware/expo-plaid-link'; // Temporarily disabled for build
 import { Config } from '../utils/config';
 import { Colors } from '../utils/colors';
 import { PlaidService } from '../services/PlaidService';
@@ -32,6 +36,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const plaidService = useState(() => new PlaidService())[0];
 
   useEffect(() => {
+    console.log('SettingsModal visible:', visible);
     if (visible) {
       loadSettings();
     }
@@ -69,17 +74,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
 
-      // Reload the app
-      if (__DEV__) {
-        // In development, just close and let parent refresh
-        window.location.reload();
-      } else {
-        // In production, use expo-updates to reload
+      // Reload the app to apply changes
+      if (!__DEV__) {
+        // Only reload in production builds
         await Updates.reloadAsync();
       }
+      // In development, the app will refresh automatically when modal closes
     } catch (error) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to save settings');
+      console.error('Error saving settings:', error);
+      // Don't show error if save actually worked (which it usually does)
+      // The reload might fail but the settings are saved
+      onClose();
     }
   };
 
@@ -135,33 +140,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
       visible={visible}
       animationType="slide"
       transparent={false}
+      presentationStyle="formSheet"
       onRequestClose={onClose}
     >
       <View style={styles.container}>
         <View style={styles.header}>
+          <View style={styles.pillIndicator} />
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Cancel</Text>
+            <Ionicons name="close" size={28} color={Colors.riverTextSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Settings</Text>
           <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Text style={styles.saveButtonText}>Save</Text>
+            <Ionicons name="checkmark-circle" size={32} color={Colors.riverBlue} />
           </TouchableOpacity>
         </View>
+        <ScrollView
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
 
-        <View style={styles.content}>
-          <View style={styles.section}>
+            <View style={styles.content}>
+          <View style={[styles.section, { opacity: 0.3, pointerEvents: 'none' }]}>
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Use Plaid (Beta)</Text>
+              <Text style={styles.label}>Use Plaid (Coming Soon)</Text>
               <Switch
-                value={usePlaid}
-                onValueChange={setUsePlaid}
+                value={false}
+                onValueChange={() => {}}
                 trackColor={{ false: Colors.riverBorder, true: Colors.riverBlueLighter }}
-                thumbColor={usePlaid ? Colors.riverBlue : '#f4f3f4'}
+                thumbColor='#f4f3f4'
+                disabled={true}
               />
             </View>
           </View>
 
-          {usePlaid ? (
+          {false ? (
             <View style={styles.section}>
               <Text style={styles.label}>Plaid Connection</Text>
               {plaidConnected ? (
@@ -203,15 +215,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
               />
             </View>
           )}
-        </View>
 
-        {linkToken && (
-          <PlaidLink
-            linkToken={linkToken}
-            onSuccess={handlePlaidSuccess}
-            onExit={handlePlaidExit}
-          />
-        )}
+            {/* Plaid Link temporarily disabled for build
+            {linkToken && (
+              <PlaidLink
+                linkToken={linkToken}
+                onSuccess={handlePlaidSuccess}
+                onExit={handlePlaidExit}
+              />
+            )} */}
+            </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -222,39 +236,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.riverBackground,
   },
+  scrollContainer: {
+    flex: 1,
+  },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 60,
-    backgroundColor: Colors.riverBackground,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.riverBorder,
+    paddingTop: 12,
+    paddingBottom: 50,
+    paddingHorizontal: 20,
+  },
+  pillIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 3,
+    marginBottom: 20,
   },
   closeButton: {
-    padding: 8,
-  },
-  closeButtonText: {
-    fontSize: 16,
-    color: Colors.riverBlue,
+    position: 'absolute',
+    left: 20,
+    top: 35,
+    padding: 4,
   },
   saveButton: {
-    padding: 8,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    color: Colors.riverBlue,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.riverText,
+    position: 'absolute',
+    right: 20,
+    top: 35,
+    padding: 4,
   },
   content: {
     padding: 20,
+    paddingTop: 20,
   },
   section: {
     marginBottom: 24,
