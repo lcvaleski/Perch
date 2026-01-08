@@ -61,6 +61,7 @@ export const MainScreen: React.FC = () => {
   // Animate fade when loading changes and sync tab colors
   React.useEffect(() => {
     if (isLoading) {
+
       // Fade out and scale down the list
       Animated.parallel([
         Animated.timing(listFadeAnim, {
@@ -98,22 +99,33 @@ export const MainScreen: React.FC = () => {
       ]).start();
     }
 
-    // Animate total with fade and subtle bounce
+    // Animate total with shimmer effect
     if (isLoading) {
-      // Fade out and scale down slightly
-      Animated.parallel([
-        Animated.timing(totalOpacityAnim, {
-          toValue: 0.5,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-        Animated.timing(totalScaleAnim, {
-          toValue: 0.99,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Create pulsing shimmer effect with opacity
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(totalOpacityAnim, {
+            toValue: 0.4,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(totalOpacityAnim, {
+            toValue: 0.8,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+
+      // Subtle scale down
+      Animated.timing(totalScaleAnim, {
+        toValue: 0.99,
+        duration: 80,
+        useNativeDriver: true,
+      }).start();
     } else {
+      // Stop the shimmer loop
+      totalOpacityAnim.stopAnimation();
       // Haptic feedback when fade-in starts
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
