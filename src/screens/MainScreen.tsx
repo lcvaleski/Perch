@@ -20,6 +20,7 @@ import { useTransactions, ViewMode } from '../hooks/useTransactions';
 import { TransactionRow } from '../components/TransactionRow';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { SettingsModal } from '../components/SettingsModal';
+import { StatsModal } from '../components/StatsModal';
 import { Colors } from '../utils/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -39,6 +40,7 @@ export const MainScreen: React.FC = () => {
   } = useTransactions();
 
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
   const listFadeAnim = useRef(new Animated.Value(1)).current;
@@ -309,18 +311,26 @@ export const MainScreen: React.FC = () => {
       {/* Header Section */}
       <View style={styles.header}>
         {/* Main Amount */}
-        <Animated.Text
-          style={[
-            styles.totalAmount,
-            {
-              color: Colors.riverBlue,
-              opacity: totalOpacityAnim,
-              transform: [{ scale: totalScaleAnim }],
-            }
-          ]}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setStatsVisible(true);
+          }}
         >
-          {getTotalDisplay()}
-        </Animated.Text>
+          <Animated.Text
+            style={[
+              styles.totalAmount,
+              {
+                color: Colors.riverBlue,
+                opacity: totalOpacityAnim,
+                transform: [{ scale: totalScaleAnim }],
+              }
+            ]}
+          >
+            {getTotalDisplay()}
+          </Animated.Text>
+        </TouchableOpacity>
 
         {/* Time Range Selector */}
         <View style={styles.modeSelector}>
@@ -448,6 +458,11 @@ export const MainScreen: React.FC = () => {
           // Refresh data when settings modal closes
           refresh();
         }}
+      />
+
+      <StatsModal
+        visible={statsVisible}
+        onClose={() => setStatsVisible(false)}
       />
     </SafeAreaView>
   );
