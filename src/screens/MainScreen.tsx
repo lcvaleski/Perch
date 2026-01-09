@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Dimensions,
   PanResponder,
@@ -165,9 +166,11 @@ export const MainScreen: React.FC = () => {
   const currentModeRef = useRef(currentMode);
   currentModeRef.current = currentMode;
 
-  // Track haptic feedback state
-  const lastHapticPosition = useRef(0);
-  const hapticInterval = screenWidth * 0.02; // Haptic every 2% of screen width for smoother feedback
+  // Track haptic feedback state - only trigger at specific thresholds
+  const hasTriggeredFirstHaptic = useRef(false);
+  const hasTriggeredSecondHaptic = useRef(false);
+  const firstHapticThreshold = screenWidth * 0.03; // 3% of screen width - early feedback
+  const secondHapticThreshold = screenWidth * 0.09; // 9% of screen width - just before switch
 
   const panResponder = useRef(
     PanResponder.create({
@@ -177,9 +180,9 @@ export const MainScreen: React.FC = () => {
         return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5;
       },
       onPanResponderGrant: () => {
-        // Initial haptic when starting swipe
-        Haptics.selectionAsync();
-        lastHapticPosition.current = 0;
+        // Reset haptic tracking for new swipe
+        hasTriggeredFirstHaptic.current = false;
+        hasTriggeredSecondHaptic.current = false;
       },
       onPanResponderMove: (evt, gestureState) => {
         // Add visual feedback during swipe
@@ -195,20 +198,27 @@ export const MainScreen: React.FC = () => {
           translation = gestureState.dx * 0.3;
         }
 
-        // Smooth haptic feedback as you swipe
+        // Subtle haptic feedback at two key thresholds
         const currentPosition = Math.abs(gestureState.dx);
-        const positionDiff = currentPosition - lastHapticPosition.current;
 
-        // Trigger haptic at regular intervals (using selection for immediate feedback)
-        if (positionDiff >= hapticInterval) {
-          // Use selection haptic for immediate, continuous feedback
+        // First haptic: Light tick when starting to swipe (3% threshold)
+        if (!hasTriggeredFirstHaptic.current && currentPosition >= firstHapticThreshold) {
           Haptics.selectionAsync();
-          lastHapticPosition.current = currentPosition;
+          hasTriggeredFirstHaptic.current = true;
         }
 
-        // Reset haptic tracking when crossing zero (direction change)
-        if (Math.sign(gestureState.dx) !== Math.sign(gestureState.dx - gestureState.vx)) {
-          lastHapticPosition.current = 0;
+        // Second haptic: Slightly stronger when approaching switch threshold (9%)
+        if (!hasTriggeredSecondHaptic.current && currentPosition >= secondHapticThreshold) {
+          Haptics.selectionAsync(); // Use selection for both for consistency
+          hasTriggeredSecondHaptic.current = true;
+        }
+
+        // Reset haptics if user swipes back below thresholds
+        if (currentPosition < firstHapticThreshold) {
+          hasTriggeredFirstHaptic.current = false;
+          hasTriggeredSecondHaptic.current = false;
+        } else if (currentPosition < secondHapticThreshold) {
+          hasTriggeredSecondHaptic.current = false;
         }
 
         translateX.setValue(translation);
@@ -218,7 +228,8 @@ export const MainScreen: React.FC = () => {
         const velocityThreshold = 0.2; // Much more sensitive velocity
 
         // Reset haptic tracking
-        lastHapticPosition.current = 0;
+        hasTriggeredFirstHaptic.current = false;
+        hasTriggeredSecondHaptic.current = false;
 
         // Get current index
         const currentIdx = modes.findIndex(m => m.key === currentModeRef.current);
@@ -302,6 +313,7 @@ export const MainScreen: React.FC = () => {
           style={[
             styles.totalAmount,
             {
+              color: Colors.riverBlue,
               opacity: totalOpacityAnim,
               transform: [{ scale: totalScaleAnim }],
             }
@@ -342,7 +354,7 @@ export const MainScreen: React.FC = () => {
                   {mode.label}
                 </Animated.Text>
                 {currentMode === mode.key && (
-                  <View style={styles.underline} />
+                  <View style={[styles.underline, { backgroundColor: Colors.riverBlueLighter }]} />
                 )}
               </View>
             </TouchableOpacity>
@@ -382,9 +394,20 @@ export const MainScreen: React.FC = () => {
             {isLoading && transactionStates.length === 0 ? (
               <SkeletonLoader count={10} />
             ) : transactionStates.length === 0 ? (
-              <View style={styles.emptyContainer}>
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.emptyContainer}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={handleRefresh}
+                    tintColor={Colors.riverBlue}
+                  />
+                }
+                showsVerticalScrollIndicator={false}
+              >
                 <Text style={styles.emptyText}>No transactions yet</Text>
-              </View>
+              </ScrollView>
             ) : (
               <FlatList
                 data={transactionStates}

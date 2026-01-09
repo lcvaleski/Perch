@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import * as Updates from 'expo-updates';
 // import PlaidLink from '@burstware/expo-plaid-link'; // Temporarily disabled for build
 import { Config } from '../utils/config';
-import { Colors } from '../utils/colors';
+import { Colors, ColorThemes, setColorTheme, getCurrentThemeKey } from '../utils/colors';
 import { PlaidService } from '../services/PlaidService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -33,6 +33,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoadingLinkToken, setIsLoadingLinkToken] = useState(false);
   const [plaidConnected, setPlaidConnected] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<keyof typeof ColorThemes>('river');
   const plaidService = useState(() => new PlaidService())[0];
 
   useEffect(() => {
@@ -51,6 +52,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
 
     const connected = await plaidService.isConnected();
     setPlaidConnected(connected);
+
+    // Load saved theme
+    const savedTheme = await AsyncStorage.getItem('color_theme');
+    if (savedTheme && savedTheme in ColorThemes) {
+      setSelectedTheme(savedTheme as keyof typeof ColorThemes);
+      setColorTheme(savedTheme as keyof typeof ColorThemes);
+    }
   };
 
   const handleSave = async () => {
@@ -71,6 +79,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
         await Config.setLunchMoneyAPIKey(lunchMoneyKey.trim());
       }
       await AsyncStorage.setItem('use_plaid', usePlaid ? 'true' : 'false');
+
+      // Save theme
+      await AsyncStorage.setItem('color_theme', selectedTheme);
+      setColorTheme(selectedTheme);
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
 
@@ -201,19 +214,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
               )}
             </View>
           ) : (
-            <View style={styles.section}>
-              <Text style={styles.label}>LunchMoney API Key</Text>
-              <TextInput
-                style={styles.input}
-                value={lunchMoneyKey}
-                onChangeText={setLunchMoneyKey}
-                placeholder="Enter your API key"
-                placeholderTextColor={Colors.riverTextSecondary}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
+            <>
+              <View style={styles.section}>
+                <Text style={styles.label}>LunchMoney API Key</Text>
+                <TextInput
+                  style={styles.input}
+                  value={lunchMoneyKey}
+                  onChangeText={setLunchMoneyKey}
+                  placeholder="Enter your API key"
+                  placeholderTextColor={Colors.riverTextSecondary}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.label}>Color Theme</Text>
+                <View style={styles.themeContainer}>
+                  {(Object.keys(ColorThemes) as Array<keyof typeof ColorThemes>).map((theme) => (
+                    <TouchableOpacity
+                      key={theme}
+                      style={[
+                        styles.themeOption,
+                        selectedTheme === theme && styles.themeOptionSelected
+                      ]}
+                      onPress={() => {
+                        setSelectedTheme(theme);
+                        Haptics.selectionAsync();
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.colorSwatch,
+                          { backgroundColor: ColorThemes[theme].primary }
+                        ]}
+                      />
+                      <Text style={[
+                        styles.themeLabel,
+                        selectedTheme === theme && { color: ColorThemes[theme].primary }
+                      ]}>
+                        {ColorThemes[theme].name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
           )}
 
             {/* Plaid Link temporarily disabled for build
@@ -324,5 +371,35 @@ const styles = StyleSheet.create({
   disconnectButtonText: {
     color: Colors.riverBlue,
     fontSize: 14,
+  },
+  themeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    gap: 12,
+  },
+  themeOption: {
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.riverBorder,
+    width: '22%',
+  },
+  themeOptionSelected: {
+    borderWidth: 2,
+    borderColor: Colors.riverBlue,
+    backgroundColor: 'rgba(70, 130, 180, 0.05)',
+  },
+  colorSwatch: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 4,
+  },
+  themeLabel: {
+    fontSize: 12,
+    color: Colors.riverText,
+    marginTop: 4,
   },
 });

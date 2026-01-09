@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { MainScreen } from './src/screens/MainScreen';
 import { Config } from './src/utils/config';
+import { Colors, ColorThemes, setColorTheme } from './src/utils/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -15,6 +17,12 @@ export default function App() {
 
   const checkConfiguration = async () => {
     try {
+      // Load saved theme
+      const savedTheme = await AsyncStorage.getItem('color_theme');
+      if (savedTheme && savedTheme in ColorThemes) {
+        setColorTheme(savedTheme as keyof typeof ColorThemes);
+      }
+
       const keysConfigured = await Config.hasRequiredKeys();
       setHasKeys(keysConfigured);
     } catch (error) {
@@ -27,7 +35,7 @@ export default function App() {
   if (!isReady) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5A8BA8" />
+        <ActivityIndicator size="large" color={Colors.riverBlue} />
         <Text style={styles.loadingText}>Loading Perch...</Text>
       </View>
     );
