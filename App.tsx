@@ -7,6 +7,10 @@ import { Config } from './src/utils/config';
 import { Colors, ColorThemes, setColorTheme } from './src/utils/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Polyfill for react-native-svg
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
+
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [hasKeys, setHasKeys] = useState(false);
