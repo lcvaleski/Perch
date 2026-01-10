@@ -9,6 +9,7 @@ import {
   Dimensions,
   Animated,
   Platform,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -24,12 +25,37 @@ interface StatsModalProps {
   average?: number;
   title?: string;
   averageLabel?: string;
+  currentMode?: string;
+  onSwitchMode?: (direction: 'left' | 'right') => void;
 }
 
-export const StatsModal: React.FC<StatsModalProps> = ({ visible, onClose, data, average, title, averageLabel }) => {
+export const StatsModal: React.FC<StatsModalProps> = ({ visible, onClose, data, average, title, averageLabel, currentMode, onSwitchMode }) => {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [isModalVisible, setIsModalVisible] = useState(visible);
+
+  // Create PanResponder for swipe gestures
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 5;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const swipeThreshold = screenWidth * 0.15;
+
+        if (gestureState.dx > swipeThreshold && onSwitchMode) {
+          // Swipe right - go to previous view
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSwitchMode('right');
+        } else if (gestureState.dx < -swipeThreshold && onSwitchMode) {
+          // Swipe left - go to next view
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSwitchMode('left');
+        }
+      },
+    })
+  ).current;
 
   useEffect(() => {
     if (visible) {
@@ -85,6 +111,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({ visible, onClose, data, 
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
             <Animated.View
+              {...panResponder.panHandlers}
               style={[
                 styles.modalContainer,
                 {

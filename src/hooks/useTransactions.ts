@@ -26,7 +26,7 @@ export function useTransactions() {
   const [lastWeekTotal, setLastWeekTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [currentMode, setCurrentMode] = useState<ViewMode>(ViewMode.Day);
+  const [currentMode, setCurrentMode] = useState<ViewMode>(ViewMode.Week);
   const [usePlaid, setUsePlaid] = useState(false);
   const api = useRef<LunchMoneyAPI | PlaidService>(new LunchMoneyAPI()).current;
   const hasMarkedAsViewed = useRef(false);

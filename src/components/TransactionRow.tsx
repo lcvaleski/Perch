@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { TransactionState } from '../models/TransactionState';
 import { TransactionUtils } from '../models/Transaction';
 import { Colors } from '../utils/colors';
@@ -7,9 +7,11 @@ import { Colors } from '../utils/colors';
 interface TransactionRowProps {
   state: TransactionState;
   isNew?: boolean;
+  isHidden?: boolean;
+  onToggleHidden?: () => void;
 }
 
-export const TransactionRow: React.FC<TransactionRowProps> = ({ state, isNew }) => {
+export const TransactionRow: React.FC<TransactionRowProps> = ({ state, isNew, isHidden, onToggleHidden }) => {
   const amount = TransactionUtils.getAmount(state.transaction);
   const accountName = TransactionUtils.getAccountName(state.transaction);
 
@@ -21,8 +23,12 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ state, isNew }) 
   };
 
   return (
-    <View>
-      <View style={styles.container}>
+    <View style={{ opacity: isHidden ? 0.5 : 1 }}>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={onToggleHidden}
+        activeOpacity={0.7}
+      >
         {/* Left Column */}
         <View style={styles.leftColumn}>
           <View style={styles.merchantContainer}>
@@ -40,14 +46,14 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ state, isNew }) 
           <View style={styles.amountRow}>
             <Text style={styles.amount}>${amount.toFixed(2)}</Text>
             {isNew && (
-              <View style={styles.newDot} />
+              <View style={[styles.newDot, { backgroundColor: Colors.riverBlueLighter }]} />
             )}
           </View>
           {accountName && (
             <Text style={styles.paymentMethod}>{accountName}</Text>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
       <View style={styles.separator} />
     </View>
   );
@@ -98,7 +104,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.riverBlueLighter,
   },
   paymentMethod: {
     fontSize: 10,

@@ -25,9 +25,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
+  onLogout?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout }) => {
   const [lunchMoneyKey, setLunchMoneyKey] = useState('');
   const [usePlaid, setUsePlaid] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -271,6 +272,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose }
                 onExit={handlePlaidExit}
               />
             )} */}
+
+            {/* Logout Button */}
+            {onLogout && Platform.OS === 'ios' && (
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'Sign Out',
+                      'Are you sure you want to sign out?',
+                      [
+                        {
+                          text: 'Cancel',
+                          style: 'cancel'
+                        },
+                        {
+                          text: 'Sign Out',
+                          style: 'destructive',
+                          onPress: () => {
+                            onClose();
+                            onLogout();
+                          }
+                        }
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.logoutButtonText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             </View>
         </ScrollView>
       </View>
@@ -401,5 +433,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.riverText,
     marginTop: 4,
+  },
+  logoutButton: {
+    backgroundColor: Colors.riverBlue,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

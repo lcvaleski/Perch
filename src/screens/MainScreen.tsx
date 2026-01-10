@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTransactions, ViewMode } from '../hooks/useTransactions';
 import { TransactionRow } from '../components/TransactionRow';
 import { SkeletonLoader } from '../components/SkeletonLoader';
@@ -25,7 +26,11 @@ import { Colors } from '../utils/colors';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export const MainScreen: React.FC = () => {
+interface MainScreenProps {
+  onLogout?: () => void;
+}
+
+export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   const {
     transactionStates,
     newTransactionIds,
@@ -46,6 +51,7 @@ export const MainScreen: React.FC = () => {
   const [statsTitle, setStatsTitle] = useState<string>('');
   const [statsAverageLabel, setStatsAverageLabel] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
+  const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
   const translateX = useRef(new Animated.Value(0)).current;
   const listFadeAnim = useRef(new Animated.Value(1)).current;
   const listScaleAnim = useRef(new Animated.Value(1)).current;
@@ -64,6 +70,64 @@ export const MainScreen: React.FC = () => {
   ).current;
 
   const totalOpacityAnim = useRef(new Animated.Value(1)).current;
+
+  // Load hidden transactions from storage
+  useEffect(() => {
+    const loadHiddenTransactions = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('hidden_transactions');
+        if (stored) {
+          setHiddenTransactions(new Set(JSON.parse(stored)));
+        }
+      } catch (error) {
+        console.error('Error loading hidden transactions:', error);
+      }
+    };
+    loadHiddenTransactions();
+  }, []);
+
+  // Save hidden transactions whenever they change
+  useEffect(() => {
+    const saveHiddenTransactions = async () => {
+      try {
+        await AsyncStorage.setItem('hidden_transactions', JSON.stringify(Array.from(hiddenTransactions)));
+      } catch (error) {
+        console.error('Error saving hidden transactions:', error);
+      }
+    };
+    saveHiddenTransactions();
+  }, [hiddenTransactions]);
+
+  // Toggle hidden state for a transaction
+  const toggleHiddenTransaction = (transactionId: string) => {
+    // Haptic feedback for transaction tap
+    Haptics.selectionAsync();
+
+    // Trigger subtle bounce animation on total
+    Animated.sequence([
+      Animated.timing(totalScaleAnim, {
+        toValue: 0.97,
+        duration: 80,
+        useNativeDriver: true,
+      }),
+      Animated.spring(totalScaleAnim, {
+        toValue: 1,
+        friction: 5,
+        tension: 120,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setHiddenTransactions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(transactionId)) {
+        newSet.delete(transactionId);
+      } else {
+        newSet.add(transactionId);
+      }
+      return newSet;
+    });
+  };
 
   // Animate fade when loading changes and sync tab colors
   React.useEffect(() => {
@@ -133,8 +197,6 @@ export const MainScreen: React.FC = () => {
     } else {
       // Stop the shimmer loop
       totalOpacityAnim.stopAnimation();
-      // Haptic feedback when fade-in starts
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       // Fade in with subtle overshoot bounce
       Animated.parallel([
@@ -172,12 +234,6 @@ export const MainScreen: React.FC = () => {
   const currentModeRef = useRef(currentMode);
   currentModeRef.current = currentMode;
 
-  // Track haptic feedback state - only trigger at specific thresholds
-  const hasTriggeredFirstHaptic = useRef(false);
-  const hasTriggeredSecondHaptic = useRef(false);
-  const firstHapticThreshold = screenWidth * 0.03; // 3% of screen width - early feedback
-  const secondHapticThreshold = screenWidth * 0.09; // 9% of screen width - just before switch
-
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (evt, gestureState) => {
@@ -186,9 +242,8 @@ export const MainScreen: React.FC = () => {
         return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 5;
       },
       onPanResponderGrant: () => {
-        // Reset haptic tracking for new swipe
-        hasTriggeredFirstHaptic.current = false;
-        hasTriggeredSecondHaptic.current = false;
+        // Trigger haptic at the start of swipe
+        Haptics.selectionAsync();
       },
       onPanResponderMove: (evt, gestureState) => {
         // Add visual feedback during swipe
@@ -204,38 +259,12 @@ export const MainScreen: React.FC = () => {
           translation = gestureState.dx * 0.3;
         }
 
-        // Subtle haptic feedback at two key thresholds
-        const currentPosition = Math.abs(gestureState.dx);
-
-        // First haptic: Light tick when starting to swipe (3% threshold)
-        if (!hasTriggeredFirstHaptic.current && currentPosition >= firstHapticThreshold) {
-          Haptics.selectionAsync();
-          hasTriggeredFirstHaptic.current = true;
-        }
-
-        // Second haptic: Slightly stronger when approaching switch threshold (9%)
-        if (!hasTriggeredSecondHaptic.current && currentPosition >= secondHapticThreshold) {
-          Haptics.selectionAsync(); // Use selection for both for consistency
-          hasTriggeredSecondHaptic.current = true;
-        }
-
-        // Reset haptics if user swipes back below thresholds
-        if (currentPosition < firstHapticThreshold) {
-          hasTriggeredFirstHaptic.current = false;
-          hasTriggeredSecondHaptic.current = false;
-        } else if (currentPosition < secondHapticThreshold) {
-          hasTriggeredSecondHaptic.current = false;
-        }
-
         translateX.setValue(translation);
       },
       onPanResponderRelease: (evt, gestureState) => {
         const swipeThreshold = screenWidth * 0.1; // Much more sensitive - 10% of screen width
         const velocityThreshold = 0.2; // Much more sensitive velocity
 
-        // Reset haptic tracking
-        hasTriggeredFirstHaptic.current = false;
-        hasTriggeredSecondHaptic.current = false;
 
         // Get current index
         const currentIdx = modes.findIndex(m => m.key === currentModeRef.current);
@@ -268,7 +297,6 @@ export const MainScreen: React.FC = () => {
         }).start();
 
         if (shouldChangeView && newMode) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           switchMode(newMode, false);
         }
       },
@@ -276,25 +304,38 @@ export const MainScreen: React.FC = () => {
   ).current;
 
   const handleRefresh = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   };
 
-  const getTotalDisplay = () => {
-    switch (currentMode) {
-      case ViewMode.Day:
-        return `$${dailyTotal.toFixed(2)}`;
-      case ViewMode.Week:
-        return `$${weeklyTotal.toFixed(2)}`;
-      case ViewMode.Month:
-        return `$${monthlyTotal.toFixed(2)}`;
-      case ViewMode.Year:
-        return `$${yearlyTotal.toFixed(2)}`;
-      default:
-        return '$0.00';
+  const handleModalSwipe = (direction: 'left' | 'right') => {
+    const currentIndex = modes.findIndex(m => m.key === currentMode);
+    let newIndex = currentIndex;
+
+    if (direction === 'left') {
+      // Move to next mode
+      newIndex = (currentIndex + 1) % modes.length;
+    } else {
+      // Move to previous mode
+      newIndex = (currentIndex - 1 + modes.length) % modes.length;
     }
+
+    switchMode(modes[newIndex].key);
+  };
+
+  const getTotalDisplay = () => {
+    // Calculate total excluding hidden transactions
+    const visibleTotal = transactionStates.reduce((sum, state) => {
+      if (!hiddenTransactions.has(state.transaction.id.toString())) {
+        // Parse amount from string to number
+        const amount = parseFloat(state.transaction.amount.replace(/[^0-9.-]/g, '')) || 0;
+        return sum + amount;
+      }
+      return sum;
+    }, 0);
+
+    return `$${visibleTotal.toFixed(2)}`;
   };
 
   const loadStatsData = async () => {
@@ -365,7 +406,7 @@ export const MainScreen: React.FC = () => {
     if (statsVisible) {
       loadStatsData();
     }
-  }, [statsVisible]);
+  }, [statsVisible, currentMode]);
 
   // Don't show error screen - just continue with normal UI
 
@@ -375,7 +416,6 @@ export const MainScreen: React.FC = () => {
       <TouchableOpacity
         style={styles.settingsIconContainer}
         onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setSettingsVisible(true);
         }}
       >
@@ -388,7 +428,6 @@ export const MainScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setStatsVisible(true);
           }}
         >
@@ -500,6 +539,8 @@ export const MainScreen: React.FC = () => {
                   <TransactionRow
                     state={item}
                     isNew={newTransactionIds.has(item.transaction.id.toString())}
+                    isHidden={hiddenTransactions.has(item.transaction.id.toString())}
+                    onToggleHidden={() => toggleHiddenTransaction(item.transaction.id.toString())}
                   />
                 )}
                 refreshControl={
@@ -532,6 +573,7 @@ export const MainScreen: React.FC = () => {
           // Refresh data when settings modal closes
           refresh();
         }}
+        onLogout={onLogout}
       />
 
       <StatsModal
@@ -541,6 +583,8 @@ export const MainScreen: React.FC = () => {
         average={statsAverage}
         title={statsTitle}
         averageLabel={statsAverageLabel}
+        currentMode={currentMode}
+        onSwitchMode={handleModalSwipe}
       />
     </SafeAreaView>
   );
@@ -553,7 +597,7 @@ const styles = StyleSheet.create({
   },
   settingsIconContainer: {
     position: 'absolute',
-    top: 50,
+    top: 65,
     right: 40,
     zIndex: 10,
     width: 44,
