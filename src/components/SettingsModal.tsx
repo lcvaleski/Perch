@@ -192,22 +192,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
         ? 'https://production.plaid.com/link/token/create'
         : 'https://sandbox.plaid.com/link/token/create';
 
+      console.log('Calling Plaid API:', plaidUrl);
+
+      Alert.alert('Creating Link Token', 'Connecting to Plaid...');
+
+      const requestBody = {
+        client_id: config.clientId,
+        secret: config.secret,
+        user: {
+          client_user_id: 'perch-user-' + Date.now(),
+        },
+        client_name: 'Perch',
+        products: ['transactions'],
+        country_codes: ['US'],
+        language: 'en',
+      };
+
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
       const response = await fetch(plaidUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          client_id: config.clientId,
-          secret: config.secret,
-          user: {
-            client_user_id: 'perch-user-' + Date.now(),
-          },
-          client_name: 'Perch',
-          products: ['transactions'],
-          country_codes: ['US'],
-          language: 'en',
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       console.log('Response status:', response.status);
@@ -216,21 +224,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
         const errorText = await response.text();
         console.error('Response error:', errorText);
         let errorMessage = 'Failed to create link token';
+        let errorDetails = errorText;
         try {
           const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error_message || errorJson.message || errorMessage;
+          errorMessage = errorJson.error_message || errorJson.display_message || errorJson.message || errorMessage;
+          errorDetails = `Code: ${errorJson.error_code || 'Unknown'}\nType: ${errorJson.error_type || 'Unknown'}`;
         } catch {}
-        Alert.alert('Plaid Error', errorMessage);
+        Alert.alert('Plaid Error', `${errorMessage}\n\n${errorDetails}`);
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
       console.log('Link token created:', data.link_token);
-      setLinkToken(data.link_token);
 
-      // Store the token and show Plaid Link
-      setShowPlaidLink(true);
-      console.log('Link token ready for native SDK');
+      Alert.alert(
+        'Success',
+        'Link token created. Opening Plaid Link...',
+        [{
+          text: 'OK',
+          onPress: () => {
+            setLinkToken(data.link_token);
+            setShowPlaidLink(true);
+            console.log('Link token ready for native SDK');
+          }
+        }]
+      );
     } catch (error: any) {
       console.error('Error initializing Plaid:', error);
       console.error('Error details:', error.toString());
@@ -411,29 +429,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
                       // Immediate haptic feedback
                       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-                      // Show temporary alert then call handler
-                      Alert.alert(
-                        'Plaid Setup',
-                        'Note: Plaid integration requires environment variables to be configured in your build.',
-                        [
-                          {
-                            text: 'Cancel',
-                            style: 'cancel'
-                          },
-                          {
-                            text: 'Continue',
-                            onPress: () => {
-                              // For now, show configuration info
-                              const config = getPlaidConfig();
-                              Alert.alert(
-                                'Configuration Status',
-                                `Environment: ${config?.environment || 'Not Set'}\nClient ID: ${config?.clientId ? 'Set' : 'Missing'}\nSecret: ${config?.secret ? 'Set' : 'Missing'}\n\nPlaid requires these environment variables:\n- EXPO_PUBLIC_PLAID_CLIENT_ID\n- EXPO_PUBLIC_PLAID_SANDBOX_SECRET`,
-                                [{ text: 'OK' }]
-                              );
-                            }
-                          }
-                        ]
-                      );
+                      // Call the handler directly since config is working
+                      await handleConnectPlaid();
                     }}
                     disabled={isLoadingLinkToken}
                   >

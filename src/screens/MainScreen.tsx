@@ -881,7 +881,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.riverBlue,
     marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: Platform.select({
+      ios: 'Courier',
+      android: 'Courier',
+      default: 'Courier'
+    }),
   },
   modeSelector: {
     flexDirection: 'row',
