@@ -149,7 +149,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
     setIsLoadingLinkToken(true);
     try {
       const config = getPlaidConfig();
-      console.log('Plaid config:', config);
+      console.log('Plaid config:', JSON.stringify(config, null, 2));
+
+      if (!config.clientId || !config.secret) {
+        Alert.alert('Configuration Error', 'Plaid API keys not configured. Please check environment variables.');
+        throw new Error('Missing Plaid configuration');
+      }
 
       // Create link token using Plaid API directly (for sandbox testing)
       console.log('Creating link token...');

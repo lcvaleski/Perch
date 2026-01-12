@@ -26,7 +26,14 @@ export const PlaidConfig = {
 };
 
 export const getPlaidConfig = () => {
-  return PlaidConfig[PlaidConfig.currentEnvironment];
+  const config = PlaidConfig[PlaidConfig.currentEnvironment];
+
+  // Log for debugging
+  console.log('Environment:', PlaidConfig.currentEnvironment);
+  console.log('Client ID from env:', process.env.EXPO_PUBLIC_PLAID_CLIENT_ID);
+  console.log('Has sandbox secret:', !!process.env.EXPO_PUBLIC_PLAID_SANDBOX_SECRET);
+
+  return config;
 };
 
 // Backend URL for Plaid operations (if you have a backend)
