@@ -22,6 +22,7 @@ import { useTransactions, ViewMode } from '../hooks/useTransactions';
 import { TransactionRow } from '../components/TransactionRow';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { TransactionState } from '../models/TransactionState';
+import { Transaction } from '../models/Transaction';
 import { SettingsModal } from '../components/SettingsModal';
 import { StatsModal } from '../components/StatsModal';
 import { PlaidLinkWebView } from '../components/PlaidLinkWebView';
@@ -63,7 +64,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   const [demoMode, setDemoMode] = useState(false);
   const [demoTransactionIndex, setDemoTransactionIndex] = useState(0);
   const [demoLoading, setDemoLoading] = useState(false);
-  const [demoTransactionStates, setDemoTransactionStates] = useState<any[]>([]);
+  const [demoTransactionStates, setDemoTransactionStates] = useState<TransactionState[]>([]);
   const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const tapRef = useRef({ lastTap: 0, tapCount: 0 });
   const translateX = useRef(new Animated.Value(0)).current;
@@ -502,32 +503,21 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
     }
 
     // Helper to create full transaction object
-    const createFullTransaction = (t: any) => ({
-      ...t,
+    const createFullTransaction = (t: any): Transaction => ({
+      id: t.id,
+      date: t.date,
+      payee: t.payee,
       amount: t.amount.toString(),
-      excludeFromTotals: false,
       currency: 'usd',
-      status: 'cleared',
-      notes: `${t.account}`,
       categoryName: t.category,
-      asset_id: null,
-      asset_institution_name: null,
-      asset_name: null,
-      asset_display_name: null,
-      asset_status: null,
-      display_name: null,
-      display_notes: null,
       account_display_name: t.account,
-      tags: [],
-      external_id: null,
-      formatted_date: 'Jan 12',
-      top_level_category: null,
+      excludeFromTotals: false,
     });
 
     // Start with empty list, then show 2 transactions after brief delay
     setTimeout(() => {
       const initialTransactions = mockTransactions.slice(0, 2).map(createFullTransaction);
-      const states = initialTransactions.map(t => new TransactionState(t));
+      const states: TransactionState[] = initialTransactions.map(t => new TransactionState(t));
       setDemoTransactionStates(states);
       setDemoTransactionIndex(2);
       setDemoLoading(false);
@@ -550,21 +540,21 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
               if (refreshCount % 2 === 0) {
                 // Every other cycle, show all transactions
                 const allTransactions = mockTransactions.map(createFullTransaction);
-                const states = allTransactions.map(t => new TransactionState(t));
+                const states: TransactionState[] = allTransactions.map(t => new TransactionState(t));
                 setDemoTransactionStates(states);
                 setDemoLoading(false);
                 return mockTransactions.length;
               } else {
                 // Otherwise reset to 2
                 const resetTransactions = mockTransactions.slice(0, 2).map(createFullTransaction);
-                const states = resetTransactions.map(t => new TransactionState(t));
+                const states: TransactionState[] = resetTransactions.map(t => new TransactionState(t));
                 setDemoTransactionStates(states);
                 setDemoLoading(false);
                 return 2;
               }
             } else {
               const nextTransactions = mockTransactions.slice(0, newIndex).map(createFullTransaction);
-              const states = nextTransactions.map(t => new TransactionState(t));
+              const states: TransactionState[] = nextTransactions.map(t => new TransactionState(t));
               setDemoTransactionStates(states);
               setDemoLoading(false);
               return newIndex;

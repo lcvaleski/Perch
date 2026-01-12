@@ -151,6 +151,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
     setIsLoadingLinkToken(true);
 
     try {
+      // Test network connectivity first
+      try {
+        const testResponse = await fetch('https://sandbox.plaid.com', { method: 'HEAD' });
+        console.log('Network test response:', testResponse.status);
+      } catch (networkError) {
+        Alert.alert(
+          'Network Error',
+          'Unable to connect to Plaid servers. Please check your internet connection.',
+          [{ text: 'OK' }]
+        );
+        setIsLoadingLinkToken(false);
+        return;
+      }
+
       const config = getPlaidConfig();
       console.log('Plaid config:', JSON.stringify(config, null, 2));
 
@@ -194,8 +208,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
 
       console.log('Calling Plaid API:', plaidUrl);
 
-      Alert.alert('Creating Link Token', 'Connecting to Plaid...');
-
       const requestBody = {
         client_id: config.clientId,
         secret: config.secret,
@@ -208,15 +220,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
         language: 'en',
       };
 
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+      console.log('Request body (without secret):', JSON.stringify({ ...requestBody, secret: '[HIDDEN]' }, null, 2));
 
-      const response = await fetch(plaidUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
+      let response;
+      try {
+        response = await fetch(plaidUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+      } catch (fetchError: any) {
+        console.error('Fetch error:', fetchError);
+        Alert.alert(
+          'Connection Failed',
+          `Unable to connect to Plaid API.\n\nError: ${fetchError.message || 'Network request failed'}`,
+          [{ text: 'OK' }]
+        );
+        setIsLoadingLinkToken(false);
+        return;
+      }
 
       console.log('Response status:', response.status);
 
@@ -234,20 +258,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        Alert.alert(
+          'Invalid Response',
+          'Received invalid response from Plaid. This might be a configuration issue.',
+          [{ text: 'OK' }]
+        );
+        setIsLoadingLinkToken(false);
+        return;
+      }
+
       console.log('Link token created:', data.link_token);
+
+      if (!data.link_token) {
+        Alert.alert(
+          'No Link Token',
+          'Plaid API responded but did not provide a link token.',
+          [{ text: 'OK' }]
+        );
+        setIsLoadingLinkToken(false);
+        return;
+      }
+
+      // Successfully got link token
+      setLinkToken(data.link_token);
+      setShowPlaidLink(true);
+      console.log('Link token ready for native SDK');
 
       Alert.alert(
         'Success',
-        'Link token created. Opening Plaid Link...',
-        [{
-          text: 'OK',
-          onPress: () => {
-            setLinkToken(data.link_token);
-            setShowPlaidLink(true);
-            console.log('Link token ready for native SDK');
-          }
-        }]
+        'Link token created successfully. Plaid Link should now open.',
+        [{ text: 'OK' }]
       );
     } catch (error: any) {
       console.error('Error initializing Plaid:', error);
