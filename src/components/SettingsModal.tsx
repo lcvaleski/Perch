@@ -154,6 +154,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
       const config = getPlaidConfig();
       console.log('Plaid config:', JSON.stringify(config, null, 2));
 
+      // Check if config exists
+      if (!config) {
+        Alert.alert(
+          'Configuration Missing',
+          'Unable to load Plaid configuration. This feature is currently unavailable.',
+          [{ text: 'OK' }]
+        );
+        setIsLoadingLinkToken(false);
+        return;
+      }
+
       // Check configuration
       if (!config.clientId) {
         Alert.alert(
@@ -161,6 +172,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
           'Plaid integration requires API keys to be configured.\n\nPlease ensure EXPO_PUBLIC_PLAID_CLIENT_ID is set in your environment variables.',
           [{ text: 'OK' }]
         );
+        setIsLoadingLinkToken(false);
         return;
       }
 
@@ -170,6 +182,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
           `Plaid secret key is missing.\n\nPlease ensure ${config.environment === 'production' ? 'EXPO_PUBLIC_PLAID_PRODUCTION_SECRET' : 'EXPO_PUBLIC_PLAID_SANDBOX_SECRET'} is set in your environment variables.`,
           [{ text: 'OK' }]
         );
+        setIsLoadingLinkToken(false);
         return;
       }
 
@@ -393,10 +406,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
                 <View style={styles.addBankContainer}>
                   <Text style={styles.addBankText}>Add Bank Account</Text>
                   <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => {
-                      console.log('+ Button pressed!');
-                      handleConnectPlaid();
+                    style={[styles.addButton, isLoadingLinkToken && styles.addButtonDisabled]}
+                    onPress={async () => {
+                      // Immediate haptic feedback
+                      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+                      // Show temporary alert then call handler
+                      Alert.alert(
+                        'Plaid Setup',
+                        'Note: Plaid integration requires environment variables to be configured in your build.',
+                        [
+                          {
+                            text: 'Cancel',
+                            style: 'cancel'
+                          },
+                          {
+                            text: 'Continue',
+                            onPress: () => {
+                              // For now, show configuration info
+                              const config = getPlaidConfig();
+                              Alert.alert(
+                                'Configuration Status',
+                                `Environment: ${config?.environment || 'Not Set'}\nClient ID: ${config?.clientId ? 'Set' : 'Missing'}\nSecret: ${config?.secret ? 'Set' : 'Missing'}\n\nPlaid requires these environment variables:\n- EXPO_PUBLIC_PLAID_CLIENT_ID\n- EXPO_PUBLIC_PLAID_SANDBOX_SECRET`,
+                                [{ text: 'OK' }]
+                              );
+                            }
+                          }
+                        ]
+                      );
                     }}
                     disabled={isLoadingLinkToken}
                   >
@@ -406,6 +443,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
                       <Text style={styles.addButtonText}>+</Text>
                     )}
                   </TouchableOpacity>
+                  {isLoadingLinkToken && (
+                    <Text style={styles.loadingText}>Setting up Plaid...</Text>
+                  )}
                 </View>
               )}
             </View>
@@ -754,6 +794,14 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: 'white',
     marginTop: -2,
+  },
+  addButtonDisabled: {
+    opacity: 0.6,
+  },
+  loadingText: {
+    fontSize: 12,
+    color: Colors.riverTextSecondary,
+    marginTop: 8,
   },
   helperText: {
     fontSize: 12,
