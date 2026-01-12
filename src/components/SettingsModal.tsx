@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -12,35 +12,77 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Animated,
+  Dimensions,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Updates from 'expo-updates';
-// import PlaidLink from '@burstware/expo-plaid-link'; // Temporarily disabled for build
 import { Config } from '../utils/config';
 import { Colors, ColorThemes, setColorTheme, getCurrentThemeKey } from '../utils/colors';
 import { PlaidService } from '../services/PlaidService';
+import { getPlaidConfig } from '../config/plaid.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
+import { PlaidLinkNative } from './PlaidLinkNative';
+import { LinkSuccess } from 'react-native-plaid-link-sdk';
 
 interface SettingsModalProps {
   visible: boolean;
   onClose: () => void;
   onLogout?: () => void;
+  onPlaidLink?: (linkToken: string) => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout }) => {
+const { height: screenHeight } = Dimensions.get('window');
+
+export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout, onPlaidLink }) => {
   const [lunchMoneyKey, setLunchMoneyKey] = useState('');
   const [usePlaid, setUsePlaid] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isLoadingLinkToken, setIsLoadingLinkToken] = useState(false);
   const [plaidConnected, setPlaidConnected] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<keyof typeof ColorThemes>('river');
+  const [showPlaidLink, setShowPlaidLink] = useState(false);
   const plaidService = useState(() => new PlaidService())[0];
+
+  // Animation values for iOS-style modal
+  const slideAnim = useRef(new Animated.Value(screenHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     console.log('SettingsModal visible:', visible);
     if (visible) {
       loadSettings();
+      // Animate modal sliding up
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          tension: 65,
+          friction: 10,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0.3,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Animate modal sliding down
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: screenHeight,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [visible]);
 
@@ -103,30 +145,97 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
   };
 
   const handleConnectPlaid = async () => {
+    console.log('=== handleConnectPlaid called ===');
     setIsLoadingLinkToken(true);
     try {
-      const token = await plaidService.createLinkToken();
-      setLinkToken(token);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to initialize Plaid. Please check your backend configuration.');
+      const config = getPlaidConfig();
+      console.log('Plaid config:', config);
+
+      // Create link token using Plaid API directly (for sandbox testing)
+      console.log('Creating link token...');
+      const response = await fetch('https://sandbox.plaid.com/link/token/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: config.clientId,
+          secret: config.secret,
+          user: {
+            client_user_id: 'perch-user-' + Date.now(),
+          },
+          client_name: 'Perch',
+          products: ['transactions'],
+          country_codes: ['US'],
+          language: 'en',
+        }),
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error('Failed to create link token');
+      }
+
+      const data = await response.json();
+      console.log('Link token created:', data.link_token);
+      setLinkToken(data.link_token);
+
+      // Store the token and show Plaid Link
+      setShowPlaidLink(true);
+      console.log('Link token ready for native SDK');
+    } catch (error: any) {
+      console.error('Error initializing Plaid:', error);
+      console.error('Error details:', error.toString());
+      Alert.alert('Error', `Failed to initialize Plaid Link: ${error?.message || error?.toString() || 'Unknown error'}`);
     } finally {
       setIsLoadingLinkToken(false);
     }
   };
 
-  const handlePlaidSuccess = async (success: any) => {
+  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
     try {
-      await plaidService.exchangePublicToken(success.publicToken);
+      const config = getPlaidConfig();
+
+      // Exchange public token for access token
+      const response = await fetch('https://sandbox.plaid.com/item/public_token/exchange', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: config.clientId,
+          secret: config.secret,
+          public_token: publicToken,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange token');
+      }
+
+      const data = await response.json();
+
+      // Store access token securely
+      await SecureStore.setItemAsync('plaid_access_token', data.access_token);
+      await SecureStore.setItemAsync('plaid_item_id', data.item_id);
+
       setPlaidConnected(true);
+      setShowPlaidLink(false);
       setLinkToken(null);
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', 'Bank account connected successfully!');
     } catch (error) {
+      console.error('Error exchanging token:', error);
       Alert.alert('Error', 'Failed to connect bank account');
     }
   };
 
   const handlePlaidExit = () => {
+    setShowPlaidLink(false);
     setLinkToken(null);
   };
 
@@ -149,18 +258,58 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
     );
   };
 
+  const handleModalClose = () => {
+    // Animate out then call onClose
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: screenHeight,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
+  };
+
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
-      animationType="slide"
-      transparent={false}
-      presentationStyle="formSheet"
-      onRequestClose={onClose}
+      animationType="none"
+      transparent={true}
+      presentationStyle="overFullScreen"
+      onRequestClose={handleModalClose}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.pillIndicator} />
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+      <View style={styles.modalContainer}>
+        {/* Backdrop */}
+        <Animated.View
+          style={[
+            styles.backdrop,
+            { opacity: backdropOpacity }
+          ]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={handleModalClose}
+          />
+        </Animated.View>
+
+        {/* Modal content */}
+        <Animated.View
+          style={[
+            styles.container,
+            {
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          <View style={styles.header}>
+            <View style={styles.pillIndicator} />
+          <TouchableOpacity onPress={handleModalClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={Colors.riverTextSecondary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
@@ -174,22 +323,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
         >
 
             <View style={styles.content}>
-          <View style={[styles.section, { opacity: 0.3, pointerEvents: 'none' }]}>
+          <View style={styles.section}>
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Use Plaid (Coming Soon)</Text>
+              <Text style={styles.label}>Use Plaid</Text>
               <Switch
-                value={false}
-                onValueChange={() => {}}
+                value={usePlaid}
+                onValueChange={setUsePlaid}
                 trackColor={{ false: Colors.riverBorder, true: Colors.riverBlueLighter }}
                 thumbColor='#f4f3f4'
-                disabled={true}
               />
             </View>
           </View>
 
-          {false ? (
+          {usePlaid ? (
             <View style={styles.section}>
               <Text style={styles.label}>Plaid Connection</Text>
+              <Text style={{ fontSize: 10, color: 'gray' }}>Debug: connected={plaidConnected.toString()}, linkToken={linkToken ? 'yes' : 'no'}, showPlaidLink={showPlaidLink.toString()}</Text>
               {plaidConnected ? (
                 <View style={styles.connectedContainer}>
                   <Text style={styles.connectedText}>✓ Bank account connected</Text>
@@ -201,17 +350,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
                   </TouchableOpacity>
                 </View>
               ) : (
-                <TouchableOpacity
-                  style={styles.connectButton}
-                  onPress={handleConnectPlaid}
-                  disabled={isLoadingLinkToken}
-                >
-                  {isLoadingLinkToken ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <Text style={styles.connectButtonText}>Connect Bank Account</Text>
-                  )}
-                </TouchableOpacity>
+                <View style={styles.addBankContainer}>
+                  <Text style={styles.addBankText}>Add Bank Account</Text>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => {
+                      console.log('+ Button pressed!');
+                      handleConnectPlaid();
+                    }}
+                    disabled={isLoadingLinkToken}
+                  >
+                    {isLoadingLinkToken ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <Text style={styles.addButtonText}>+</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           ) : (
@@ -305,15 +460,84 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
             )}
             </View>
         </ScrollView>
+        </Animated.View>
       </View>
     </Modal>
+
+    {/* Native Plaid Link - opens when link token is ready */}
+    {linkToken && showPlaidLink && (
+      <PlaidLinkNative
+        linkToken={linkToken}
+        visible={showPlaidLink}
+        onSuccess={async (publicToken: string, metadata: LinkSuccess) => {
+          try {
+            const config = getPlaidConfig();
+
+            // Exchange public token for access token
+            const response = await fetch('https://sandbox.plaid.com/item/public_token/exchange', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                client_id: config.clientId,
+                secret: config.secret,
+                public_token: publicToken,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to exchange token');
+            }
+
+            const data = await response.json();
+
+            // Store access token securely
+            await SecureStore.setItemAsync('plaid_access_token', data.access_token);
+            await SecureStore.setItemAsync('plaid_item_id', data.item_id);
+
+            setPlaidConnected(true);
+            setShowPlaidLink(false);
+            setLinkToken(null);
+
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert('Success', 'Bank account connected successfully!');
+          } catch (error) {
+            console.error('Error exchanging token:', error);
+            Alert.alert('Error', 'Failed to connect bank account');
+          }
+        }}
+        onExit={(error) => {
+          console.log('Plaid Link exited:', error);
+          setShowPlaidLink(false);
+          setLinkToken(null);
+        }}
+      />
+    )}
+
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  modalContainer: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'black',
+  },
+  container: {
     backgroundColor: Colors.riverBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: screenHeight * 0.9,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   scrollContainer: {
     flex: 1,
@@ -446,5 +670,33 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  addBankContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  addBankText: {
+    fontSize: 14,
+    color: Colors.riverTextSecondary,
+    marginBottom: 16,
+  },
+  addButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.riverBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  addButtonText: {
+    fontSize: 36,
+    fontWeight: '300',
+    color: 'white',
+    marginTop: -2,
   },
 });

@@ -11,6 +11,7 @@ import {
   PanResponder,
   Animated,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,10 @@ import { TransactionRow } from '../components/TransactionRow';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { SettingsModal } from '../components/SettingsModal';
 import { StatsModal } from '../components/StatsModal';
+import { PlaidLinkWebView } from '../components/PlaidLinkWebView';
 import { Colors } from '../utils/colors';
+import * as SecureStore from 'expo-secure-store';
+import { getPlaidConfig } from '../config/plaid.config';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -52,10 +56,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   const [statsAverageLabel, setStatsAverageLabel] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
+  const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
+  const [showPlaidLink, setShowPlaidLink] = useState(false);
   const translateX = useRef(new Animated.Value(0)).current;
   const listFadeAnim = useRef(new Animated.Value(1)).current;
   const listScaleAnim = useRef(new Animated.Value(1)).current;
   const totalScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // iOS modal presentation animations
+  const backgroundScaleAnim = useRef(new Animated.Value(1)).current;
+  const backgroundBorderRadiusAnim = useRef(new Animated.Value(0)).current;
 
   const modes = [
     { key: ViewMode.Day, label: 'Day' },
@@ -408,22 +418,111 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
     }
   }, [statsVisible, currentMode]);
 
+  // Handle Plaid link from settings
+  const handlePlaidLink = (linkToken: string) => {
+    console.log('MainScreen: handlePlaidLink called with token:', linkToken);
+    setPlaidLinkToken(linkToken);
+    setShowPlaidLink(true);
+  };
+
+  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
+    try {
+      const config = getPlaidConfig();
+
+      // Exchange public token for access token
+      const response = await fetch('https://sandbox.plaid.com/item/public_token/exchange', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: config.clientId,
+          secret: config.secret,
+          public_token: publicToken,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to exchange token');
+      }
+
+      const data = await response.json();
+
+      // Store access token securely
+      await SecureStore.setItemAsync('plaid_access_token', data.access_token);
+      await SecureStore.setItemAsync('plaid_item_id', data.item_id);
+
+      setShowPlaidLink(false);
+      setPlaidLinkToken(null);
+
+      Alert.alert('Success', 'Bank account connected successfully!');
+
+      // Refresh transactions
+      refresh();
+    } catch (error) {
+      console.error('Error exchanging token:', error);
+      Alert.alert('Error', 'Failed to connect bank account');
+    }
+  };
+
+  const handlePlaidExit = () => {
+    console.log('MainScreen: Plaid exit');
+    setShowPlaidLink(false);
+    setPlaidLinkToken(null);
+  };
+
   // Don't show error screen - just continue with normal UI
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Settings Icon */}
-      <TouchableOpacity
-        style={styles.settingsIconContainer}
-        onPress={() => {
-          setSettingsVisible(true);
-        }}
+      {/* Animated wrapper for iOS-style modal presentation */}
+      <Animated.View
+        style={[
+          styles.mainContent,
+          {
+            transform: [{ scale: backgroundScaleAnim }],
+          }
+        ]}
       >
-        <Ionicons name="settings-sharp" size={20} color="rgba(102, 102, 102, 0.2)" />
-      </TouchableOpacity>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              borderRadius: backgroundBorderRadiusAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 20],
+              }),
+              overflow: 'hidden',
+              backgroundColor: Colors.riverBackground,
+            }
+          ]}
+        >
+        {/* Settings Icon */}
+        <TouchableOpacity
+          style={styles.settingsIconContainer}
+          onPress={() => {
+            // Animate background to scale down
+            Animated.parallel([
+              Animated.spring(backgroundScaleAnim, {
+                toValue: 0.93,
+                tension: 100,
+                friction: 30,
+                useNativeDriver: true,
+              }),
+              Animated.timing(backgroundBorderRadiusAnim, {
+                toValue: 1,
+                duration: 250,
+                useNativeDriver: false,
+              }),
+            ]).start();
+            setSettingsVisible(true);
+          }}
+        >
+          <Ionicons name="settings-sharp" size={20} color="rgba(102, 102, 102, 0.2)" />
+        </TouchableOpacity>
 
-      {/* Header Section */}
-      <View style={styles.header}>
+        {/* Header Section */}
+        <View style={styles.header}>
         {/* Main Amount */}
         <TouchableOpacity
           activeOpacity={0.7}
@@ -566,14 +665,42 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
         />
       </View>
 
+        {/* Plaid Link WebView - rendered outside of settings modal */}
+        {plaidLinkToken && (
+          <PlaidLinkWebView
+            linkToken={plaidLinkToken}
+            visible={showPlaidLink}
+            onSuccess={handlePlaidSuccess}
+            onExit={handlePlaidExit}
+          />
+        )}
+        </Animated.View>
+      </Animated.View>
+
+      {/* Modals rendered outside of animated wrapper */}
       <SettingsModal
         visible={settingsVisible}
         onClose={() => {
+          // Animate background back to normal
+          Animated.parallel([
+            Animated.spring(backgroundScaleAnim, {
+              toValue: 1,
+              tension: 100,
+              friction: 30,
+              useNativeDriver: true,
+            }),
+            Animated.timing(backgroundBorderRadiusAnim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: false,
+            }),
+          ]).start();
           setSettingsVisible(false);
           // Refresh data when settings modal closes
           refresh();
         }}
         onLogout={onLogout}
+        onPlaidLink={handlePlaidLink}
       />
 
       <StatsModal
@@ -592,6 +719,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: Colors.riverBackground,
+  },
+  mainContent: {
     flex: 1,
     backgroundColor: Colors.riverBackground,
   },
