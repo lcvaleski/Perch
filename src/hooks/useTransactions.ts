@@ -89,7 +89,9 @@ export function useTransactions() {
         case ViewMode.Day:
           // Fetch main transactions and wait for them
           fetchedTransactions = await api.fetchDailyTransactions().catch(err => {
-            console.error('Error fetching daily:', err);
+            if (!err?.message?.includes('API key not configured')) {
+              console.error('Error fetching daily:', err);
+            }
             return [];
           });
           setDailyTotal(calculateTotal(fetchedTransactions));
@@ -97,19 +99,33 @@ export function useTransactions() {
           // Fire off other totals in background (don't wait)
           api.fetchWeeklyTransactions()
             .then(t => setWeeklyTotal(calculateTotal(t)))
-            .catch(err => console.error('Error fetching weekly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching weekly total:', err);
+              }
+            });
           api.fetchMonthlyTransactions()
             .then(t => setMonthlyTotal(calculateTotal(t)))
-            .catch(err => console.error('Error fetching monthly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching monthly total:', err);
+              }
+            });
           api.fetchYearlyTotal()
             .then(setYearlyTotal)
-            .catch(err => console.error('Error fetching yearly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching yearly total:', err);
+              }
+            });
           break;
 
         case ViewMode.Week:
           // Fetch main transactions and wait for them
           fetchedTransactions = await api.fetchWeeklyTransactions().catch(err => {
-            console.error('Error fetching weekly:', err);
+            if (!err?.message?.includes('API key not configured')) {
+              console.error('Error fetching weekly:', err);
+            }
             return [];
           });
           setWeeklyTotal(calculateTotal(fetchedTransactions));
@@ -117,19 +133,33 @@ export function useTransactions() {
           // Fire off other totals in background (don't wait)
           api.fetchMonthlyTransactions()
             .then(t => setMonthlyTotal(calculateTotal(t)))
-            .catch(err => console.error('Error fetching monthly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching monthly total:', err);
+              }
+            });
           api.fetchYearlyTotal()
             .then(setYearlyTotal)
-            .catch(err => console.error('Error fetching yearly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching yearly total:', err);
+              }
+            });
           api.fetchLastWeekTotal()
             .then(setLastWeekTotal)
-            .catch(err => console.error('Error fetching last week total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching last week total:', err);
+              }
+            });
           break;
 
         case ViewMode.Month:
           // Fetch main transactions and wait for them
           fetchedTransactions = await api.fetchMonthlyTransactions().catch(err => {
-            console.error('Error fetching monthly:', err);
+            if (!err?.message?.includes('API key not configured')) {
+              console.error('Error fetching monthly:', err);
+            }
             return [];
           });
           setMonthlyTotal(calculateTotal(fetchedTransactions));
@@ -137,13 +167,19 @@ export function useTransactions() {
           // Fire off other totals in background (don't wait)
           api.fetchYearlyTotal()
             .then(setYearlyTotal)
-            .catch(err => console.error('Error fetching yearly total:', err));
+            .catch(err => {
+              if (!err?.message?.includes('API key not configured')) {
+                console.error('Error fetching yearly total:', err);
+              }
+            });
           break;
 
         case ViewMode.Year:
           // Fetch main transactions and wait for them
           fetchedTransactions = await api.fetchYearlyTransactions().catch(err => {
-            console.error('Error fetching yearly:', err);
+            if (!err?.message?.includes('API key not configured')) {
+              console.error('Error fetching yearly:', err);
+            }
             return [];
           });
           setYearlyTotal(calculateTotal(fetchedTransactions));

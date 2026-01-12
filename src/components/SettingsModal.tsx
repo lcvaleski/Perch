@@ -33,11 +33,13 @@ interface SettingsModalProps {
   onClose: () => void;
   onLogout?: () => void;
   onPlaidLink?: (linkToken: string) => void;
+  demoMode?: boolean;
+  onDemoModeToggle?: (enabled: boolean) => void;
 }
 
 const { height: screenHeight } = Dimensions.get('window');
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout, onPlaidLink }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, onLogout, onPlaidLink, demoMode = false, onDemoModeToggle }) => {
   const [lunchMoneyKey, setLunchMoneyKey] = useState('');
   const [usePlaid, setUsePlaid] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -147,18 +149,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
   const handleConnectPlaid = async () => {
     console.log('=== handleConnectPlaid called ===');
     setIsLoadingLinkToken(true);
+
     try {
       const config = getPlaidConfig();
       console.log('Plaid config:', JSON.stringify(config, null, 2));
 
-      if (!config.clientId || !config.secret) {
-        Alert.alert('Configuration Error', 'Plaid API keys not configured. Please check environment variables.');
-        throw new Error('Missing Plaid configuration');
+      // Check configuration
+      if (!config.clientId) {
+        Alert.alert(
+          'Plaid Not Configured',
+          'Plaid integration requires API keys to be configured.\n\nPlease ensure EXPO_PUBLIC_PLAID_CLIENT_ID is set in your environment variables.',
+          [{ text: 'OK' }]
+        );
+        return;
       }
 
-      // Create link token using Plaid API directly (for sandbox testing)
+      if (!config.secret) {
+        Alert.alert(
+          'Plaid Not Configured',
+          `Plaid secret key is missing.\n\nPlease ensure ${config.environment === 'production' ? 'EXPO_PUBLIC_PLAID_PRODUCTION_SECRET' : 'EXPO_PUBLIC_PLAID_SANDBOX_SECRET'} is set in your environment variables.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Create link token using Plaid API directly
       console.log('Creating link token...');
-      const response = await fetch('https://sandbox.plaid.com/link/token/create', {
+      const plaidUrl = config.environment === 'production'
+        ? 'https://production.plaid.com/link/token/create'
+        : 'https://sandbox.plaid.com/link/token/create';
+
+      const response = await fetch(plaidUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +202,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Response error:', errorText);
-        throw new Error('Failed to create link token');
+        let errorMessage = 'Failed to create link token';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error_message || errorJson.message || errorMessage;
+        } catch {}
+        Alert.alert('Plaid Error', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -194,7 +221,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
     } catch (error: any) {
       console.error('Error initializing Plaid:', error);
       console.error('Error details:', error.toString());
-      Alert.alert('Error', `Failed to initialize Plaid Link: ${error?.message || error?.toString() || 'Unknown error'}`);
+
+      // More user-friendly error messages
+      let errorMessage = 'Failed to initialize Plaid Link';
+      if (error?.message?.includes('Network request failed')) {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Connection Failed', errorMessage, [{ text: 'OK' }]);
     } finally {
       setIsLoadingLinkToken(false);
     }
@@ -343,7 +379,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
           {usePlaid ? (
             <View style={styles.section}>
               <Text style={styles.label}>Plaid Connection</Text>
-              <Text style={{ fontSize: 10, color: 'gray' }}>Debug: connected={plaidConnected.toString()}, linkToken={linkToken ? 'yes' : 'no'}, showPlaidLink={showPlaidLink.toString()}</Text>
               {plaidConnected ? (
                 <View style={styles.connectedContainer}>
                   <Text style={styles.connectedText}>✓ Bank account connected</Text>
@@ -432,6 +467,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onClose, 
                 onExit={handlePlaidExit}
               />
             )} */}
+
+            {/* Demo Mode Toggle */}
+            {onDemoModeToggle && (
+              <View style={styles.section}>
+                <View style={styles.switchRow}>
+                  <Text style={styles.label}>Demo Mode (App Store Video)</Text>
+                  <Switch
+                    value={demoMode}
+                    onValueChange={onDemoModeToggle}
+                    trackColor={{ false: Colors.riverBorder, true: Colors.riverBlueLighter }}
+                    thumbColor='#f4f3f4'
+                  />
+                </View>
+                <Text style={styles.helperText}>Shows sample transactions for recording</Text>
+              </View>
+            )}
 
             {/* Logout Button */}
             {onLogout && Platform.OS === 'ios' && (
@@ -703,5 +754,10 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: 'white',
     marginTop: -2,
+  },
+  helperText: {
+    fontSize: 12,
+    color: Colors.riverTextSecondary,
+    marginTop: 4,
   },
 });

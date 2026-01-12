@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTransactions, ViewMode } from '../hooks/useTransactions';
 import { TransactionRow } from '../components/TransactionRow';
 import { SkeletonLoader } from '../components/SkeletonLoader';
+import { TransactionState } from '../models/TransactionState';
 import { SettingsModal } from '../components/SettingsModal';
 import { StatsModal } from '../components/StatsModal';
 import { PlaidLinkWebView } from '../components/PlaidLinkWebView';
@@ -36,6 +37,7 @@ interface MainScreenProps {
 
 export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   const {
+    transactions,
     transactionStates,
     newTransactionIds,
     dailyTotal,
@@ -58,6 +60,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   const [hiddenTransactions, setHiddenTransactions] = useState<Set<string>>(new Set());
   const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
   const [showPlaidLink, setShowPlaidLink] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+  const [demoTransactionIndex, setDemoTransactionIndex] = useState(0);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoTransactionStates, setDemoTransactionStates] = useState<any[]>([]);
+  const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const tapRef = useRef({ lastTap: 0, tapCount: 0 });
   const translateX = useRef(new Animated.Value(0)).current;
   const listFadeAnim = useRef(new Animated.Value(1)).current;
   const listScaleAnim = useRef(new Animated.Value(1)).current;
@@ -80,6 +88,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
   ).current;
 
   const totalOpacityAnim = useRef(new Animated.Value(1)).current;
+
+  // Mock transactions for demo mode
+  const mockTransactions = [
+    { id: 1001, date: '2025-01-12', payee: 'Uber Eats', amount: 32.64, category: 'Food & Drink', account: 'Visa' },
+    { id: 1002, date: '2025-01-12', payee: 'MTA', amount: 6.75, category: 'Transportation', account: 'Visa' },
+    { id: 1003, date: '2025-01-12', payee: "Trader Joe's", amount: 46.29, category: 'Groceries', account: 'Amex' },
+    { id: 1004, date: '2025-01-12', payee: 'Spotify', amount: 4.99, category: 'Entertainment', account: 'Amex' },
+    { id: 1005, date: '2025-01-12', payee: 'Gas', amount: 41.03, category: 'Transportation', account: 'Chase Work' },
+    { id: 1006, date: '2025-01-12', payee: 'Starbucks', amount: 7.99, category: 'Food & Drink', account: 'Chase Work' },
+  ];
 
   // Load hidden transactions from storage
   useEffect(() => {
@@ -141,7 +159,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
 
   // Animate fade when loading changes and sync tab colors
   React.useEffect(() => {
-    if (isLoading) {
+    const loading = demoMode ? demoLoading : isLoading;
+    if (loading) {
 
       // Fade out and scale down the list
       Animated.parallel([
@@ -181,7 +200,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
     }
 
     // Animate total with shimmer effect
-    if (isLoading) {
+    if (loading) {
       // Create pulsing shimmer effect with opacity
       Animated.loop(
         Animated.sequence([
@@ -239,7 +258,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
         useNativeDriver: false,
       }).start();
     });
-  }, [isLoading, currentMode, transactionStates.length]);
+  }, [isLoading, demoLoading, demoMode, currentMode, transactionStates.length, demoTransactionStates.length]);
 
   const currentModeRef = useRef(currentMode);
   currentModeRef.current = currentMode;
@@ -471,6 +490,113 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
     setPlaidLinkToken(null);
   };
 
+  // Demo mode for App Store video
+  const startDemoMode = () => {
+    setDemoMode(true);
+    setDemoTransactionIndex(0);
+    setDemoLoading(true);
+
+    // Clear any existing interval
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+    }
+
+    // Helper to create full transaction object
+    const createFullTransaction = (t: any) => ({
+      ...t,
+      amount: t.amount.toString(),
+      excludeFromTotals: false,
+      currency: 'usd',
+      status: 'cleared',
+      notes: `${t.account}`,
+      categoryName: t.category,
+      asset_id: null,
+      asset_institution_name: null,
+      asset_name: null,
+      asset_display_name: null,
+      asset_status: null,
+      display_name: null,
+      display_notes: null,
+      account_display_name: t.account,
+      tags: [],
+      external_id: null,
+      formatted_date: 'Jan 12',
+      top_level_category: null,
+    });
+
+    // Start with empty list, then show 2 transactions after brief delay
+    setTimeout(() => {
+      const initialTransactions = mockTransactions.slice(0, 2).map(createFullTransaction);
+      const states = initialTransactions.map(t => new TransactionState(t));
+      setDemoTransactionStates(states);
+      setDemoTransactionIndex(2);
+      setDemoLoading(false);
+
+      // Trigger pull-to-refresh animation for subsequent loads
+      let refreshCount = 0;
+
+      // Add 2 more transactions every 1.6 seconds with loading animation
+      demoIntervalRef.current = setInterval(() => {
+        refreshCount++;
+
+        // Show loading state instead of pull-to-refresh
+        setDemoLoading(true);
+
+        setTimeout(() => {
+          setDemoTransactionIndex(prev => {
+            const newIndex = prev + 2;
+            if (newIndex > mockTransactions.length) {
+              // Reset to start with all transactions for a cycle
+              if (refreshCount % 2 === 0) {
+                // Every other cycle, show all transactions
+                const allTransactions = mockTransactions.map(createFullTransaction);
+                const states = allTransactions.map(t => new TransactionState(t));
+                setDemoTransactionStates(states);
+                setDemoLoading(false);
+                return mockTransactions.length;
+              } else {
+                // Otherwise reset to 2
+                const resetTransactions = mockTransactions.slice(0, 2).map(createFullTransaction);
+                const states = resetTransactions.map(t => new TransactionState(t));
+                setDemoTransactionStates(states);
+                setDemoLoading(false);
+                return 2;
+              }
+            } else {
+              const nextTransactions = mockTransactions.slice(0, newIndex).map(createFullTransaction);
+              const states = nextTransactions.map(t => new TransactionState(t));
+              setDemoTransactionStates(states);
+              setDemoLoading(false);
+              return newIndex;
+            }
+          });
+        }, 300); // Quick loading animation
+      }, 1600);
+    }, 300); // Initial delay for loading state
+  };
+
+  const stopDemoMode = () => {
+    setDemoMode(false);
+    setRefreshing(false);
+    setDemoLoading(false);
+    setDemoTransactionStates([]);
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+      demoIntervalRef.current = null;
+    }
+    // Refresh real data
+    refresh();
+  };
+
+  useEffect(() => {
+    // Cleanup interval on unmount
+    return () => {
+      if (demoIntervalRef.current) {
+        clearInterval(demoIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Don't show error screen - just continue with normal UI
 
   return (
@@ -523,24 +649,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
 
         {/* Header Section */}
         <View style={styles.header}>
-        {/* Main Amount */}
+        {/* Main Amount - Tap for stats */}
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={() => {
-            setStatsVisible(true);
-          }}
+          onPress={() => setStatsVisible(true)}
         >
           <Animated.Text
             style={[
               styles.totalAmount,
               {
-                color: Colors.riverBlue,
+                color: demoMode ? Colors.riverBlueLighter : Colors.riverBlue,
                 opacity: totalOpacityAnim,
                 transform: [{ scale: totalScaleAnim }],
               }
             ]}
           >
-            {getTotalDisplay()}
+            {demoMode ? (
+              demoTransactionIndex === 0 ? '$0.00' :
+              `$${mockTransactions.slice(0, Math.min(demoTransactionIndex, mockTransactions.length)).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`
+            ) : getTotalDisplay()}
           </Animated.Text>
         </TouchableOpacity>
 
@@ -613,9 +740,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
             opacity: listFadeAnim,
             transform: [{ scale: listScaleAnim }]
           }}>
-            {isLoading && transactionStates.length === 0 ? (
+            {(isLoading || demoLoading) && (demoMode ? demoTransactionStates : transactionStates).length === 0 ? (
               <SkeletonLoader count={10} />
-            ) : transactionStates.length === 0 ? (
+            ) : (demoMode ? demoTransactionStates : transactionStates).length === 0 ? (
               <ScrollView
                 style={{ flex: 1 }}
                 contentContainerStyle={styles.emptyContainer}
@@ -632,14 +759,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
               </ScrollView>
             ) : (
               <FlatList
-                data={transactionStates}
+                data={demoMode ? demoTransactionStates : transactionStates}
                 keyExtractor={(item) => item.transaction.id.toString()}
                 renderItem={({ item }) => (
                   <TransactionRow
                     state={item}
-                    isNew={newTransactionIds.has(item.transaction.id.toString())}
-                    isHidden={hiddenTransactions.has(item.transaction.id.toString())}
-                    onToggleHidden={() => toggleHiddenTransaction(item.transaction.id.toString())}
+                    isNew={!demoMode && newTransactionIds.has(item.transaction.id.toString())}
+                    isHidden={!demoMode && hiddenTransactions.has(item.transaction.id.toString())}
+                    onToggleHidden={() => !demoMode && toggleHiddenTransaction(item.transaction.id.toString())}
                   />
                 )}
                 refreshControl={
@@ -701,6 +828,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
         }}
         onLogout={onLogout}
         onPlaidLink={handlePlaidLink}
+        demoMode={demoMode}
+        onDemoModeToggle={(enabled) => {
+          if (enabled) {
+            startDemoMode();
+          } else {
+            stopDemoMode();
+          }
+        }}
       />
 
       <StatsModal
@@ -728,12 +863,12 @@ const styles = StyleSheet.create({
   },
   settingsIconContainer: {
     position: 'absolute',
-    top: 65,
-    right: 40,
+    top: 10,
+    right: 20,
     zIndex: 10,
     width: 44,
     height: 44,
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   header: {

@@ -93,8 +93,11 @@ export class LunchMoneyAPI {
       );
 
       return this.filterTransactions(response.data.transactions);
-    } catch (error) {
-      console.error('Error fetching weekly transactions:', error);
+    } catch (error: any) {
+      // Only log errors that aren't related to missing API key
+      if (!error?.message?.includes('API key not configured')) {
+        console.error('Error fetching weekly transactions:', error);
+      }
       throw error;
     }
   }
