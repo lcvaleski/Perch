@@ -1,0 +1,475 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0A52C30C366662284F211D30 /* LinkKit in Frameworks */ = {isa = PBXBuildFile; productRef = D09C627A7A42E3DB07247BDD /* LinkKit */; };
+		0F49889E18262296A48E8C30 /* TransactionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076446AEF6D5F3FF5B4B91C2 /* TransactionViewModel.swift */; };
+		1911B54E2E58933FC81E0928 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F9BADBF5DD37BCE571B0833 /* StatsView.swift */; };
+		3B843C71B4EA2F1E543A5343 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1FE5D102A75A7C5ACCBB64D2 /* Assets.xcassets */; };
+		47DCE58CD1506729DD099571 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6CAB19706CEA5E52D48D0FC /* ContentView.swift */; };
+		50D5430AC02E0C956497CE90 /* SkeletonLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D98F12E6F701E7C3AE8F1B5 /* SkeletonLoader.swift */; };
+		5C72DF2A769A48CA2014EEC7 /* ViewedTransactionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8246C57D12EF8381043352 /* ViewedTransactionsService.swift */; };
+		74E252C40A5B6568D847CA93 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB1C3BC4CB5E6144018A42AB /* MainView.swift */; };
+		7970A5EFA07C2AC58ACF3AC2 /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A097199EC73BB190EA20C4 /* ColorTheme.swift */; };
+		8CEC87FA20A05C33353D127C /* PerchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734CC7EEA30FD5A05210663F /* PerchApp.swift */; };
+		94F01DDBB2618AC86B0E0BBE /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CE665A38E943D156D50D639 /* Transaction.swift */; };
+		9FBECD336B1124E6B128CB94 /* TransactionRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E8A2F2135C0E239510216F /* TransactionRow.swift */; };
+		B53390B6BDED5355984601AB /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60AC0CC38F2F6F63CA1A9382 /* AuthView.swift */; };
+		C19474A4229FE841AC728C75 /* PlaidLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E46FCB958D579E657F640029 /* PlaidLinkView.swift */; };
+		D0BB134D4E58DBB8670E722E /* PlaidService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66640127F2B2FAF5F54A51BA /* PlaidService.swift */; };
+		D83E1FF4CCF889A2D9CAEB71 /* LunchMoneyAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E5D909104D5E76A9DC20D5 /* LunchMoneyAPI.swift */; };
+		DC9ABFDBB38A20291D9122F2 /* Preview Content in Resources */ = {isa = PBXBuildFile; fileRef = 61D99A70839E040E9E0B322E /* Preview Content */; };
+		E233CF279D37934A175AFF22 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E076DEC2D3D174C74E32BFA /* KeychainManager.swift */; };
+		ED7A3136094AC472E2A80DC5 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A4BFD917310BAA1A67A51DE /* HapticManager.swift */; };
+		F56CDA04EBCFE3ABB6B59366 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E91BA3B3815BEAAB07DAC3 /* AuthManager.swift */; };
+		FCCB6F1A3FB88E8FF178688A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA0BA68A260216DD866840C /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		076446AEF6D5F3FF5B4B91C2 /* TransactionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewModel.swift; sourceTree = "<group>"; };
+		1FE5D102A75A7C5ACCBB64D2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Assets.xcassets; path = PerchIOS/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		4F9BADBF5DD37BCE571B0833 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		58E91BA3B3815BEAAB07DAC3 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		60AC0CC38F2F6F63CA1A9382 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		61D99A70839E040E9E0B322E /* Preview Content */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Preview Content"; path = "PerchIOS/Preview Content"; sourceTree = SOURCE_ROOT; };
+		66640127F2B2FAF5F54A51BA /* PlaidService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidService.swift; sourceTree = "<group>"; };
+		69A097199EC73BB190EA20C4 /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
+		6D98F12E6F701E7C3AE8F1B5 /* SkeletonLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonLoader.swift; sourceTree = "<group>"; };
+		734CC7EEA30FD5A05210663F /* PerchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerchApp.swift; sourceTree = "<group>"; };
+		7A4BFD917310BAA1A67A51DE /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+		8CE665A38E943D156D50D639 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		9CA0BA68A260216DD866840C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9E076DEC2D3D174C74E32BFA /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		AB1C3BC4CB5E6144018A42AB /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
+		B3E8A2F2135C0E239510216F /* TransactionRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionRow.swift; sourceTree = "<group>"; };
+		CE8246C57D12EF8381043352 /* ViewedTransactionsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedTransactionsService.swift; sourceTree = "<group>"; };
+		D8E5D909104D5E76A9DC20D5 /* LunchMoneyAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LunchMoneyAPI.swift; sourceTree = "<group>"; };
+		D96003CD21BBB36C1D1B33AF /* PerchIOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PerchIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E46FCB958D579E657F640029 /* PlaidLinkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaidLinkView.swift; sourceTree = "<group>"; };
+		E6CAB19706CEA5E52D48D0FC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6DFF241FB5524B2DEBEBCEC6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A52C30C366662284F211D30 /* LinkKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		07AC9A8F90649AF8A7ADC8F5 /* PerchIOS */ = {
+			isa = PBXGroup;
+			children = (
+				E6CAB19706CEA5E52D48D0FC /* ContentView.swift */,
+				734CC7EEA30FD5A05210663F /* PerchApp.swift */,
+				90985867F9F657C51BAE6D83 /* Components */,
+				8799A825A4111F0D5F3DABB8 /* Models */,
+				4510A38DFBCDB1D6F129421A /* Services */,
+				378432A3252FAF87F4FB0A2F /* Utils */,
+				70C1687EF44FD5EA37FDCC65 /* ViewModels */,
+				8B2B3AE22114BEC088749A96 /* Views */,
+			);
+			path = PerchIOS;
+			sourceTree = "<group>";
+		};
+		13BBB1BB93C2A141430910BD /* PerchIOS */ = {
+			isa = PBXGroup;
+			children = (
+				1FE5D102A75A7C5ACCBB64D2 /* Assets.xcassets */,
+				61D99A70839E040E9E0B322E /* Preview Content */,
+				AB43539CDB38F06D6A47421D /* PerchIOS */,
+			);
+			path = PerchIOS;
+			sourceTree = "<group>";
+		};
+		1D3A6A4936A692201945443C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D96003CD21BBB36C1D1B33AF /* PerchIOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		378432A3252FAF87F4FB0A2F /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				69A097199EC73BB190EA20C4 /* ColorTheme.swift */,
+				7A4BFD917310BAA1A67A51DE /* HapticManager.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		4510A38DFBCDB1D6F129421A /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				58E91BA3B3815BEAAB07DAC3 /* AuthManager.swift */,
+				9E076DEC2D3D174C74E32BFA /* KeychainManager.swift */,
+				D8E5D909104D5E76A9DC20D5 /* LunchMoneyAPI.swift */,
+				66640127F2B2FAF5F54A51BA /* PlaidService.swift */,
+				CE8246C57D12EF8381043352 /* ViewedTransactionsService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		70C1687EF44FD5EA37FDCC65 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				076446AEF6D5F3FF5B4B91C2 /* TransactionViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		8799A825A4111F0D5F3DABB8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				8CE665A38E943D156D50D639 /* Transaction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		8B2B3AE22114BEC088749A96 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				60AC0CC38F2F6F63CA1A9382 /* AuthView.swift */,
+				AB1C3BC4CB5E6144018A42AB /* MainView.swift */,
+				E46FCB958D579E657F640029 /* PlaidLinkView.swift */,
+				9CA0BA68A260216DD866840C /* SettingsView.swift */,
+				4F9BADBF5DD37BCE571B0833 /* StatsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		90985867F9F657C51BAE6D83 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				6D98F12E6F701E7C3AE8F1B5 /* SkeletonLoader.swift */,
+				B3E8A2F2135C0E239510216F /* TransactionRow.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		AB43539CDB38F06D6A47421D /* PerchIOS */ = {
+			isa = PBXGroup;
+			children = (
+				07AC9A8F90649AF8A7ADC8F5 /* PerchIOS */,
+			);
+			path = PerchIOS;
+			sourceTree = "<group>";
+		};
+		C19778DDD9847214661850DD = {
+			isa = PBXGroup;
+			children = (
+				13BBB1BB93C2A141430910BD /* PerchIOS */,
+				1D3A6A4936A692201945443C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		489A5CEF50FB4E3CAB46FDD0 /* PerchIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC5483FA89693AA9E5857D94 /* Build configuration list for PBXNativeTarget "PerchIOS" */;
+			buildPhases = (
+				333C66388363B56CE8D4DFDB /* Sources */,
+				5F2F4E0D66933314C36DAC25 /* Resources */,
+				6DFF241FB5524B2DEBEBCEC6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PerchIOS;
+			packageProductDependencies = (
+				D09C627A7A42E3DB07247BDD /* LinkKit */,
+			);
+			productName = PerchIOS;
+			productReference = D96003CD21BBB36C1D1B33AF /* PerchIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0E4F85A1214C444CDCE313B3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 4233FFD6F29ABFB590CDA4A2 /* Build configuration list for PBXProject "PerchIOS" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = C19778DDD9847214661850DD;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A0D3AB1DB4D170F326DF4421 /* XCRemoteSwiftPackageReference "plaid-link-ios" */,
+			);
+			preferredProjectObjectVersion = 54;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				489A5CEF50FB4E3CAB46FDD0 /* PerchIOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5F2F4E0D66933314C36DAC25 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3B843C71B4EA2F1E543A5343 /* Assets.xcassets in Resources */,
+				DC9ABFDBB38A20291D9122F2 /* Preview Content in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		333C66388363B56CE8D4DFDB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F56CDA04EBCFE3ABB6B59366 /* AuthManager.swift in Sources */,
+				B53390B6BDED5355984601AB /* AuthView.swift in Sources */,
+				7970A5EFA07C2AC58ACF3AC2 /* ColorTheme.swift in Sources */,
+				47DCE58CD1506729DD099571 /* ContentView.swift in Sources */,
+				ED7A3136094AC472E2A80DC5 /* HapticManager.swift in Sources */,
+				E233CF279D37934A175AFF22 /* KeychainManager.swift in Sources */,
+				D83E1FF4CCF889A2D9CAEB71 /* LunchMoneyAPI.swift in Sources */,
+				74E252C40A5B6568D847CA93 /* MainView.swift in Sources */,
+				8CEC87FA20A05C33353D127C /* PerchApp.swift in Sources */,
+				C19474A4229FE841AC728C75 /* PlaidLinkView.swift in Sources */,
+				D0BB134D4E58DBB8670E722E /* PlaidService.swift in Sources */,
+				FCCB6F1A3FB88E8FF178688A /* SettingsView.swift in Sources */,
+				50D5430AC02E0C956497CE90 /* SkeletonLoader.swift in Sources */,
+				1911B54E2E58933FC81E0928 /* StatsView.swift in Sources */,
+				94F01DDBB2618AC86B0E0BBE /* Transaction.swift in Sources */,
+				9FBECD336B1124E6B128CB94 /* TransactionRow.swift in Sources */,
+				0F49889E18262296A48E8C30 /* TransactionViewModel.swift in Sources */,
+				5C72DF2A769A48CA2014EEC7 /* ViewedTransactionsService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		18B5F541713ECD92B6DF5581 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PerchIOS/PerchIOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "\"PerchIOS/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = PerchIOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.perch.PerchIOS;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		9FFFC0A0C3151CB4FA9600D3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A195B9C09E5968253FDB9BAD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		FFCF11BB54AECB8D3A96F5E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = PerchIOS/PerchIOS.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_ASSET_PATHS = "\"PerchIOS/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = PerchIOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.perch.PerchIOS;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4233FFD6F29ABFB590CDA4A2 /* Build configuration list for PBXProject "PerchIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FFFC0A0C3151CB4FA9600D3 /* Debug */,
+				A195B9C09E5968253FDB9BAD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CC5483FA89693AA9E5857D94 /* Build configuration list for PBXNativeTarget "PerchIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18B5F541713ECD92B6DF5581 /* Debug */,
+				FFCF11BB54AECB8D3A96F5E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A0D3AB1DB4D170F326DF4421 /* XCRemoteSwiftPackageReference "plaid-link-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/plaid/plaid-link-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D09C627A7A42E3DB07247BDD /* LinkKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A0D3AB1DB4D170F326DF4421 /* XCRemoteSwiftPackageReference "plaid-link-ios" */;
+			productName = LinkKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 0E4F85A1214C444CDCE313B3 /* Project object */;
+}

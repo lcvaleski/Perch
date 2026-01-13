@@ -648,7 +648,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({ onLogout }) => {
             style={[
               styles.totalAmount,
               {
-                color: demoMode ? Colors.riverBlueLighter : Colors.riverBlue,
+                color: Colors.riverBlue,
                 opacity: totalOpacityAnim,
                 transform: [{ scale: totalScaleAnim }],
               }
